@@ -14,10 +14,13 @@ function Chat({ setIsAuthenticated }) {
   const [user, setUser] = useState(null);
   const [users, setUsers] = useState([]);
   const [document, setDocument] = useState(null);
+  const [documentFile, setDocumentFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [searchParams] = useSearchParams();
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
+  const pollingIntervalRef = useRef(null);
 
   const roomId = searchParams.get('roomId');
   const conversationId = searchParams.get('conversationId');
@@ -59,6 +62,11 @@ function Chat({ setIsAuthenticated }) {
     fetchUsers();
     if (roomId || conversationId) {
       fetchMessages();
+
+      // Set up polling for new messages every 3 seconds
+      pollingIntervalRef.current = setInterval(() => {
+        fetchMessages();
+      }, 3000);
     }
 
     // Connect to WebSocket
@@ -72,6 +80,9 @@ function Chat({ setIsAuthenticated }) {
     return () => {
       unsubscribe();
       websocketService.disconnect();
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
     };
   }, [roomId, conversationId]);
 
@@ -87,31 +98,71 @@ function Chat({ setIsAuthenticated }) {
     const file = e.target.files[0];
     if (file) {
       if (file.type !== 'application/pdf') {
-        alert('Only PDF files are allowed');
+        setError('Only PDF files are allowed');
         e.target.value = '';
         return;
       }
+      if (file.size > 5 * 1024 * 1024) {
+        setError('File size must be less than 5MB');
+        e.target.value = '';
+        return;
+      }
+      setDocumentFile(file);
       setDocument(file.name);
+      setError('');
     }
   };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
 
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim()) {
+      setError('Please enter a message');
+      return;
+    }
 
     try {
       setLoading(true);
+      setError('');
 
       // Send message via API if in a room or conversation
       if (roomId || conversationId) {
+        let documentData = null;
+
+        // Convert file to base64 if exists
+        if (documentFile) {
+          const reader = new FileReader();
+          documentData = await new Promise((resolve, reject) => {
+            reader.onload = () => {
+              const base64 = reader.result.split(',')[1];
+              resolve({
+                filename: documentFile.name,
+                data: base64,
+              });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(documentFile);
+          });
+        }
+
         await messageService.sendMessage(
           user.id,
           newMessage,
           roomId,
           conversationId,
-          document
+          documentData
         );
+
+        // Immediately fetch new messages
+        if (roomId) {
+          const data = await roomService.getRoomMessages(roomId);
+          setMessages(data);
+        } else if (conversationId) {
+          const data = await conversationService.getConversationMessages(
+            conversationId
+          );
+          setMessages(data);
+        }
       } else {
         // Fallback to WebSocket for general chat
         const message = {
@@ -125,20 +176,13 @@ function Chat({ setIsAuthenticated }) {
 
       setNewMessage('');
       setDocument(null);
-
-      // Refresh messages
-      if (roomId) {
-        const data = await roomService.getRoomMessages(roomId);
-        setMessages(data);
-      } else if (conversationId) {
-        const data = await conversationService.getConversationMessages(
-          conversationId
-        );
-        setMessages(data);
-      }
+      setDocumentFile(null);
+      // Reset file input
+      const fileInput = document.getElementById('fileInput');
+      if (fileInput) fileInput.value = '';
     } catch (error) {
       console.error('Failed to send message:', error);
-      alert('Failed to send message');
+      setError(error.error || 'Failed to send message. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -199,6 +243,14 @@ function Chat({ setIsAuthenticated }) {
 
       {/* Main chat area */}
       <main className={styles.main}>
+        {error && (
+          <div className={styles.errorBanner}>
+            {error}
+            <button onClick={() => setError('')} className={styles.closeError}>
+              ×
+            </button>
+          </div>
+        )}
         <div className={styles.messagesContainer}>
           {loading && messages.length === 0 ? (
             <div className={styles.emptyState}>
@@ -223,16 +275,23 @@ function Chat({ setIsAuthenticated }) {
                     {msg.sender || getUserName(msg.senderId)}
                   </span>
                   <span className={styles.messageTime}>
-                    {new Date(msg.timestamp || Date.now()).toLocaleTimeString()}
+                    {msg.timestamp
+                      ? new Date(msg.timestamp * 1000).toLocaleTimeString()
+                      : new Date().toLocaleTimeString()}
                   </span>
                 </div>
                 <div className={styles.messageText}>
                   {msg.message || msg.text}
                 </div>
                 {msg.document && (
-                  <div className={styles.messageDocument}>
-                    📄 {msg.document}
-                  </div>
+                  <a
+                    href={msg.document}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={styles.messageDocument}
+                  >
+                    📄 View Document
+                  </a>
                 )}
               </div>
             ))

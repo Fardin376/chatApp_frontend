@@ -59,11 +59,11 @@ export const friendService = {
   },
 
   // Accept a friend request
-  acceptFriendRequest: async (userId, fromId) => {
+  acceptFriendRequest: async (userId, fromUserId) => {
     try {
       const response = await apiClient.post('/friends/accept', {
         userId: userId,
-        fromUser: fromId,
+        fromUser: fromUserId,
       });
       return response.data;
     } catch (error) {

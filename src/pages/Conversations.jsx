@@ -119,9 +119,23 @@ function Conversations() {
                     </div>
                   </div>
                   <button
-                    onClick={() => {
-                      setSelectedUser(user.id);
-                      handleStartConversation({ preventDefault: () => {} });
+                    onClick={async () => {
+                      try {
+                        setLoading(true);
+                        const currentUser = authService.getCurrentUser();
+                        const response =
+                          await conversationService.createConversation(
+                            currentUser.id,
+                            user.id
+                          );
+                        navigate(
+                          `/chat?conversationId=${response.conversationId}`
+                        );
+                      } catch (err) {
+                        setError(err.error || 'Failed to start conversation');
+                      } finally {
+                        setLoading(false);
+                      }
                     }}
                     className={styles.chatButton}
                     disabled={loading}
