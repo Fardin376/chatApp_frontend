@@ -6,7 +6,7 @@ import { roomService } from '../api/roomService';
 import { conversationService } from '../api/conversationService';
 import { messageService } from '../api/messageService';
 import { friendService } from '../api/friendService';
-import websocketService from '../api/websocketService';
+import firestoreService from '../api/firestoreService';
 import styles from './Chat.module.css';
 
 function Chat({ setIsAuthenticated }) {
@@ -21,32 +21,28 @@ function Chat({ setIsAuthenticated }) {
   const [conversations, setConversations] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [typingUsers, setTypingUsers] = useState([]);
   const [searchParams] = useSearchParams();
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
-  const pollingIntervalRef = useRef(null);
 
   const roomId = searchParams.get('roomId');
   const conversationId = searchParams.get('conversationId');
 
-  const [typingUsers, setTypingUsers] = useState([]);
-
+  // Initialize user and load data on mount
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
 
-    // Connect WebSocket with user ID
-    if (currentUser?.id) {
-      websocketService.connect(currentUser.id);
-    }
-
-    // Fetch all users
+    // Fetch all users first (needed for name lookups)
     const fetchUsers = async () => {
       try {
         const response = await userService.getUsers();
         setUsers(response);
+        return response;
       } catch (error) {
         console.error('Failed to fetch users:', error);
+        return [];
       }
     };
 
@@ -71,137 +67,120 @@ function Chat({ setIsAuthenticated }) {
       }
     };
 
-    // Since backend doesn't have get all conversations endpoint,
-    // we'll track conversations locally through friends
-    const fetchConversationsFromFriends = async () => {
+    // Fetch conversations from friends list (requires users to be loaded first)
+    const fetchConversationsFromFriends = async (allUsers) => {
       try {
         const friendsList = await friendService.getFriendsList(currentUser.id);
         // Create conversation entries for each friend
-        const conversationPromises = (friendsList.friends || []).map(
-          async (friendId) => {
-            const friend = users.find((u) => u.id === friendId);
-            return {
-              conversationId: `${currentUser.id}_${friendId}`,
-              participants: [currentUser.id, friendId],
-              friendName: friend?.name || 'Unknown',
-              friendId: friendId,
-              lastMessage: null,
-              type: 'conversation',
-            };
-          }
-        );
-        const convos = await Promise.all(conversationPromises);
+        const convos = (friendsList.friends || []).map((friendId) => {
+          const friend = allUsers.find((u) => u.id === friendId);
+          return {
+            conversationId: `${currentUser.id}_${friendId}`,
+            participants: [currentUser.id, friendId],
+            friendName: friend?.name || 'Unknown User',
+            friendId: friendId,
+            lastMessage: null,
+            type: 'conversation',
+          };
+        });
         setConversations(convos);
       } catch (error) {
         console.error('Failed to fetch conversations:', error);
       }
     };
 
-    // Fetch messages for room or conversation
-    const fetchMessages = async () => {
-      try {
-        setLoading(true);
-        let data = [];
-        if (roomId) {
-          console.log('Fetching messages for room:', roomId);
-          data = await roomService.getRoomMessages(roomId);
-          console.log('Room messages received:', data);
-        } else if (conversationId) {
-          console.log('Fetching messages for conversation:', conversationId);
-          data = await conversationService.getConversationMessages(
-            conversationId
-          );
-          console.log('Conversation messages received:', data);
-        }
-        setMessages(data);
-      } catch (error) {
-        console.error('Failed to fetch messages:', error);
-        setError(
-          `Failed to load messages: ${error.message || 'Unknown error'}`
-        );
-      } finally {
-        setLoading(false);
+    // Initialize data in correct order
+    const initializeData = async () => {
+      const allUsers = await fetchUsers();
+      await fetchRooms();
+      if (currentUser) {
+        await fetchConversationsFromFriends(allUsers);
       }
     };
 
-    fetchUsers();
-    fetchRooms();
-    if (currentUser) {
-      fetchConversationsFromFriends();
-    }
+    initializeData();
 
-    if (roomId || conversationId) {
-      fetchMessages();
-
-      // Join room or conversation for WebSocket messages
-      if (roomId) {
-        websocketService.joinRoom(roomId);
-      } else if (conversationId) {
-        websocketService.joinConversation(conversationId);
-      }
-    }
-
-    // Listen for incoming messages via WebSocket
-    const unsubscribeMessages = websocketService.onMessage((data) => {
-      console.log('🔔 Real-time message received:', data);
-
-      // Check if message is for current room/conversation
-      const isForCurrentChat =
-        (roomId && data.roomId === roomId) ||
-        (conversationId && data.conversationId === conversationId);
-
-      if (isForCurrentChat) {
-        // Add message to list if it's new
-        setMessages((prev) => {
-          // Check if message already exists
-          const exists = prev.some(
-            (msg) =>
-              msg.messageId === data.messageId ||
-              (msg.timestamp === data.timestamp &&
-                msg.senderId === data.senderId)
-          );
-          if (!exists) {
-            return [...prev, data];
-          }
-          return prev;
-        });
-      }
-    });
-
-    // Listen for typing indicators
-    const unsubscribeTyping = websocketService.onTyping((data) => {
-      const isForCurrentChat =
-        (roomId && data.roomId === roomId) ||
-        (conversationId && data.conversationId === conversationId);
-
-      if (isForCurrentChat && data.userId !== currentUser?.id) {
-        if (data.isTyping) {
-          setTypingUsers((prev) => {
-            if (!prev.includes(data.userId)) {
-              return [...prev, data.userId];
-            }
-            return prev;
-          });
-        } else {
-          setTypingUsers((prev) => prev.filter((id) => id !== data.userId));
-        }
-      }
-    });
-
+    // Cleanup on unmount
     return () => {
-      unsubscribeMessages();
-      unsubscribeTyping();
-      // Leave current room/conversation
-      if (roomId) {
-        websocketService.leaveRoom();
-      } else if (conversationId) {
-        websocketService.leaveConversation();
-      }
-      if (pollingIntervalRef.current) {
-        clearInterval(pollingIntervalRef.current);
-      }
+      firestoreService.unsubscribeAll();
     };
-  }, [roomId, conversationId]);
+  }, []);
+
+  // Subscribe to real-time messages when room/conversation changes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    setMessages([]);
+    setLoading(true);
+
+    let unsubscribeMessages;
+    let unsubscribeTyping;
+
+    if (roomId) {
+      console.log('📡 Subscribing to room messages:', roomId);
+      // Subscribe to room messages
+      unsubscribeMessages = firestoreService.subscribeToRoomMessages(
+        roomId,
+        (messages) => {
+          console.log('✅ Real-time room messages:', messages);
+          setMessages(messages);
+          setLoading(false);
+          setError('');
+        },
+        (error) => {
+          console.error('❌ Room subscription error:', error);
+          setError('Failed to load messages');
+          setLoading(false);
+        }
+      );
+
+      // Subscribe to typing indicators
+      unsubscribeTyping = firestoreService.subscribeToRoomTyping(
+        roomId,
+        user.id,
+        (users) => {
+          setTypingUsers(users);
+        }
+      );
+    } else if (conversationId) {
+      console.log('📡 Subscribing to conversation messages:', conversationId);
+      // Subscribe to conversation messages
+      unsubscribeMessages = firestoreService.subscribeToConversationMessages(
+        conversationId,
+        (messages) => {
+          console.log('✅ Real-time conversation messages:', messages);
+          setMessages(messages);
+          setLoading(false);
+          setError('');
+        },
+        (error) => {
+          console.error('❌ Conversation subscription error:', error);
+          setError('Failed to load messages');
+          setLoading(false);
+        }
+      );
+
+      // Subscribe to typing indicators
+      unsubscribeTyping = firestoreService.subscribeToConversationTyping(
+        conversationId,
+        user.id,
+        (users) => {
+          setTypingUsers(users);
+        }
+      );
+    }
+
+    // Cleanup subscriptions when room/conversation changes
+    return () => {
+      if (unsubscribeMessages) {
+        unsubscribeMessages();
+      }
+      if (unsubscribeTyping) {
+        unsubscribeTyping();
+      }
+      setTypingUsers([]);
+    };
+  }, [roomId, conversationId, user?.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -230,13 +209,6 @@ function Chat({ setIsAuthenticated }) {
     }
   };
 
-  // Handle typing indicator
-  const handleTyping = () => {
-    if (roomId || conversationId) {
-      websocketService.sendTyping(true);
-    }
-  };
-
   const handleSendMessage = async (e) => {
     e.preventDefault();
 
@@ -244,9 +216,6 @@ function Chat({ setIsAuthenticated }) {
       setError('Please enter a message');
       return;
     }
-
-    // Stop typing indicator
-    websocketService.sendTyping(false);
 
     try {
       setLoading(true);
@@ -286,33 +255,8 @@ function Chat({ setIsAuthenticated }) {
         );
         console.log('Message sent successfully:', sendResult);
 
-        // Notify via WebSocket immediately (others will get it in real-time)
-        websocketService.sendMessage({
-          messageId: sendResult.messageId,
-          senderId: user.id,
-          message: newMessage,
-          document: documentData,
-          timestamp: Date.now(),
-        });
-
-        // Add message to local state immediately (optimistic update)
-        const newMsg = {
-          messageId: sendResult.messageId || Date.now().toString(),
-          senderId: user.id,
-          message: newMessage,
-          document: documentData,
-          timestamp: Date.now(),
-        };
-        setMessages((prev) => [...prev, newMsg]);
-      } else {
-        // Fallback to WebSocket for general chat
-        const message = {
-          text: newMessage,
-          sender: user?.name || 'Anonymous',
-          timestamp: new Date().toISOString(),
-        };
-        websocketService.sendMessage(message);
-        setMessages((prev) => [...prev, message]);
+        // Firestore onSnapshot will automatically update messages in real-time
+        // No need for manual update - just clear the input
       }
 
       setNewMessage('');
@@ -622,10 +566,7 @@ function Chat({ setIsAuthenticated }) {
             <input
               type="text"
               value={newMessage}
-              onChange={(e) => {
-                setNewMessage(e.target.value);
-                handleTyping();
-              }}
+              onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
               className={styles.input}
             />
