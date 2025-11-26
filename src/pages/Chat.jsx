@@ -14,7 +14,7 @@ function Chat({ setIsAuthenticated }) {
   const [newMessage, setNewMessage] = useState('');
   const [user, setUser] = useState(null);
   const [users, setUsers] = useState([]);
-  const [document, setDocument] = useState(null);
+  const [attachedDocument, setAttachedDocument] = useState(null);
   const [documentFile, setDocumentFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -235,7 +235,7 @@ function Chat({ setIsAuthenticated }) {
         return;
       }
       setDocumentFile(file);
-      setDocument(file.name);
+      setAttachedDocument(file.name);
       setError('');
     }
   };
@@ -291,7 +291,7 @@ function Chat({ setIsAuthenticated }) {
       }
 
       setNewMessage('');
-      setDocument(null);
+      setAttachedDocument(null);
       setDocumentFile(null);
       // Reset file input
       const fileInput = document.getElementById('fileInput');
@@ -593,7 +593,9 @@ function Chat({ setIsAuthenticated }) {
                 className={styles.fileInput}
               />
             </div>
-            {document && <span className={styles.fileName}>📄 {document}</span>}
+            {attachedDocument && (
+              <span className={styles.fileName}>📄 {attachedDocument}</span>
+            )}
             <input
               type="text"
               value={newMessage}
