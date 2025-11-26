@@ -115,63 +115,94 @@ function Chat({ setIsAuthenticated }) {
 
     let unsubscribeMessages;
     let unsubscribeTyping;
+    let isMounted = true;
 
-    if (roomId) {
-      console.log('📡 Subscribing to room messages:', roomId);
-      // Subscribe to room messages
-      unsubscribeMessages = firestoreService.subscribeToRoomMessages(
-        roomId,
-        (messages) => {
-          console.log('✅ Real-time room messages:', messages);
-          setMessages(messages);
-          setLoading(false);
-          setError('');
-        },
-        (error) => {
-          console.error('❌ Room subscription error:', error);
-          setError('Failed to load messages');
-          setLoading(false);
-        }
-      );
+    const setupSubscriptions = async () => {
+      try {
+        if (roomId) {
+          console.log('📡 Subscribing to room messages:', roomId);
+          // Subscribe to room messages
+          unsubscribeMessages = await firestoreService.subscribeToRoomMessages(
+            roomId,
+            (messages) => {
+              if (isMounted) {
+                console.log('✅ Real-time room messages:', messages);
+                setMessages(messages);
+                setLoading(false);
+                setError('');
+              }
+            },
+            (error) => {
+              if (isMounted) {
+                console.error('❌ Room subscription error:', error);
+                setError('Failed to load messages');
+                setLoading(false);
+              }
+            }
+          );
 
-      // Subscribe to typing indicators
-      unsubscribeTyping = firestoreService.subscribeToRoomTyping(
-        roomId,
-        user.id,
-        (users) => {
-          setTypingUsers(users);
-        }
-      );
-    } else if (conversationId) {
-      console.log('📡 Subscribing to conversation messages:', conversationId);
-      // Subscribe to conversation messages
-      unsubscribeMessages = firestoreService.subscribeToConversationMessages(
-        conversationId,
-        (messages) => {
-          console.log('✅ Real-time conversation messages:', messages);
-          setMessages(messages);
-          setLoading(false);
-          setError('');
-        },
-        (error) => {
-          console.error('❌ Conversation subscription error:', error);
-          setError('Failed to load messages');
-          setLoading(false);
-        }
-      );
+          // Subscribe to typing indicators
+          unsubscribeTyping = await firestoreService.subscribeToRoomTyping(
+            roomId,
+            user.id,
+            (users) => {
+              if (isMounted) {
+                setTypingUsers(users);
+              }
+            }
+          );
+        } else if (conversationId) {
+          console.log(
+            '📡 Subscribing to conversation messages:',
+            conversationId
+          );
+          // Subscribe to conversation messages
+          unsubscribeMessages =
+            await firestoreService.subscribeToConversationMessages(
+              conversationId,
+              (messages) => {
+                if (isMounted) {
+                  console.log('✅ Real-time conversation messages:', messages);
+                  setMessages(messages);
+                  setLoading(false);
+                  setError('');
+                }
+              },
+              (error) => {
+                if (isMounted) {
+                  console.error('❌ Conversation subscription error:', error);
+                  setError('Failed to load messages');
+                  setLoading(false);
+                }
+              }
+            );
 
-      // Subscribe to typing indicators
-      unsubscribeTyping = firestoreService.subscribeToConversationTyping(
-        conversationId,
-        user.id,
-        (users) => {
-          setTypingUsers(users);
+          // Subscribe to typing indicators
+          unsubscribeTyping =
+            await firestoreService.subscribeToConversationTyping(
+              conversationId,
+              user.id,
+              (users) => {
+                if (isMounted) {
+                  setTypingUsers(users);
+                }
+              }
+            );
         }
-      );
-    }
+      } catch (error) {
+        if (isMounted) {
+          console.error('❌ Subscription setup error:', error);
+          setError('Failed to setup real-time updates');
+          setLoading(false);
+        }
+      }
+    };
+
+    setupSubscriptions();
 
     // Cleanup subscriptions when room/conversation changes
     return () => {
+      isMounted = false;
       if (unsubscribeMessages) {
         unsubscribeMessages();
       }
