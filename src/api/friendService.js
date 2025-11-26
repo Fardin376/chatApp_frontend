@@ -62,8 +62,8 @@ export const friendService = {
   acceptFriendRequest: async (userId, fromId) => {
     try {
       const response = await apiClient.post('/friends/accept', {
-        userId,
-        fromId,
+        userId: userId,
+        fromUser: fromId,
       });
       return response.data;
     } catch (error) {
