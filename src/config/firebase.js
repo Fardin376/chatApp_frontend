@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 // Your Firebase configuration
 // Get these from Firebase Console > Project Settings > Your apps
@@ -18,4 +19,46 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firestore
 const db = getFirestore(app);
 
-export { db };
+// Initialize Auth
+const auth = getAuth(app);
+
+// Auto sign-in anonymously for guest access
+let authInitialized = false;
+let authPromise = null;
+
+const ensureAuth = () => {
+  if (authPromise) return authPromise;
+
+  authPromise = new Promise((resolve, reject) => {
+    if (authInitialized && auth.currentUser) {
+      resolve(auth.currentUser);
+      return;
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        authInitialized = true;
+        console.log('✅ Firebase Auth: Already signed in as guest');
+        unsubscribe();
+        resolve(user);
+      } else {
+        try {
+          console.log('🔑 Firebase Auth: Signing in as guest...');
+          const result = await signInAnonymously(auth);
+          authInitialized = true;
+          console.log('✅ Firebase Auth: Guest signed in successfully');
+          unsubscribe();
+          resolve(result.user);
+        } catch (error) {
+          console.error('❌ Firebase Auth error:', error);
+          unsubscribe();
+          reject(error);
+        }
+      }
+    });
+  });
+
+  return authPromise;
+};
+
+export { db, auth, ensureAuth };

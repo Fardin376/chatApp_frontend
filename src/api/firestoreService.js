@@ -1,4 +1,4 @@
-import { db } from '../config/firebase';
+import { db, ensureAuth } from '../config/firebase';
 import {
   collection,
   query,
@@ -13,8 +13,11 @@ class FirestoreService {
   }
 
   // Subscribe to messages in a room
-  subscribeToRoomMessages(roomId, callback, errorCallback) {
+  async subscribeToRoomMessages(roomId, callback, errorCallback) {
     try {
+      // Ensure user is authenticated first
+      await ensureAuth();
+
       const messagesRef = collection(db, 'messages');
       const q = query(
         messagesRef,
@@ -46,8 +49,15 @@ class FirestoreService {
   }
 
   // Subscribe to messages in a conversation
-  subscribeToConversationMessages(conversationId, callback, errorCallback) {
+  async subscribeToConversationMessages(
+    conversationId,
+    callback,
+    errorCallback
+  ) {
     try {
+      // Ensure user is authenticated first
+      await ensureAuth();
+
       const messagesRef = collection(db, 'messages');
       const q = query(
         messagesRef,
@@ -79,8 +89,11 @@ class FirestoreService {
   }
 
   // Subscribe to typing indicators in a room
-  subscribeToRoomTyping(roomId, currentUserId, callback) {
+  async subscribeToRoomTyping(roomId, currentUserId, callback) {
     try {
+      // Ensure user is authenticated first
+      await ensureAuth();
+
       const typingRef = collection(db, 'typing');
       const q = query(
         typingRef,
@@ -113,8 +126,11 @@ class FirestoreService {
   }
 
   // Subscribe to typing indicators in a conversation
-  subscribeToConversationTyping(conversationId, currentUserId, callback) {
+  async subscribeToConversationTyping(conversationId, currentUserId, callback) {
     try {
+      // Ensure user is authenticated first
+      await ensureAuth();
+
       const typingRef = collection(db, 'typing');
       const q = query(
         typingRef,
