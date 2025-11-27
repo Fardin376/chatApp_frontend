@@ -60,7 +60,7 @@ export const friendService = {
   // Get list of friends - GET /friends/list/:userId
   getFriendsList: async (userId) => {
     try {
-      const response = await apiClient.get(`/friends/list/${userId}`);
+      const response = await apiClient.get(`/friends/${userId}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Failed to get friends list' };
@@ -70,7 +70,7 @@ export const friendService = {
   // Get pending friend requests - GET /friends/requests/:userId
   getFriendRequests: async (userId) => {
     try {
-      const response = await apiClient.get(`/friends/requests/${userId}`);
+      const response = await apiClient.get(`/friends/${userId}/incoming`);
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Failed to get friend requests' };
