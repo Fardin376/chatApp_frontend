@@ -472,27 +472,34 @@ function Chat({ setIsAuthenticated }) {
     <Box sx={{ display: 'flex', height: '100vh' }}>
       {/* Sidebar Drawer */}
       <Drawer
-        variant="persistent"
+        variant="temporary"
         open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        ModalProps={{
+          keepMounted: true, // Better mobile performance
+        }}
         sx={{
-          width: 280,
-          flexShrink: 0,
+          display: { xs: 'block', sm: 'block' },
           '& .MuiDrawer-paper': {
-            width: 280,
+            width: { xs: '85%', sm: 280 },
+            maxWidth: 320,
             boxSizing: 'border-box',
-            borderRight: '1px solid #e0e0e0',
           },
         }}
       >
         <Box
           sx={{
-            p: 2,
+            p: { xs: 1.5, sm: 2 },
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
           }}
         >
-          <Typography variant="h6" fontWeight="bold">
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+          >
             Chats
           </Typography>
           <IconButton onClick={() => setSidebarOpen(false)} size="small">
@@ -651,7 +658,16 @@ function Chat({ setIsAuthenticated }) {
                 <MenuIcon />
               </IconButton>
             )}
-            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                flexGrow: 1,
+                fontSize: { xs: '0.9rem', sm: '1.25rem' },
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {getChatTitle()}
             </Typography>
 
@@ -665,11 +681,22 @@ function Chat({ setIsAuthenticated }) {
               </IconButton>
             )}
 
+            <IconButton
+              onClick={() => navigate('/rooms')}
+              color="primary"
+              sx={{
+                display: { xs: 'inline-flex', md: 'none' },
+                '&:hover': { transform: 'scale(1.1)', transition: 'all 0.2s' },
+              }}
+            >
+              <GroupIcon />
+            </IconButton>
             <Button
               startIcon={<GroupIcon />}
               onClick={() => navigate('/rooms')}
               sx={{
                 mx: 0.5,
+                display: { xs: 'none', md: 'inline-flex' },
                 '&:hover': {
                   transform: 'translateY(-2px)',
                   transition: 'all 0.2s',
@@ -678,11 +705,22 @@ function Chat({ setIsAuthenticated }) {
             >
               Rooms
             </Button>
+            <IconButton
+              onClick={() => navigate('/conversations')}
+              color="primary"
+              sx={{
+                display: { xs: 'inline-flex', md: 'none' },
+                '&:hover': { transform: 'scale(1.1)', transition: 'all 0.2s' },
+              }}
+            >
+              <ChatIcon />
+            </IconButton>
             <Button
               startIcon={<ChatIcon />}
               onClick={() => navigate('/conversations')}
               sx={{
                 mx: 0.5,
+                display: { xs: 'none', md: 'inline-flex' },
                 '&:hover': {
                   transform: 'translateY(-2px)',
                   transition: 'all 0.2s',
@@ -692,11 +730,27 @@ function Chat({ setIsAuthenticated }) {
               Conversations
             </Button>
             <Badge badgeContent={friendRequests.length} color="error">
+              <IconButton
+                onClick={() => navigate('/friends')}
+                color="primary"
+                sx={{
+                  display: { xs: 'inline-flex', md: 'none' },
+                  '&:hover': {
+                    transform: 'scale(1.1)',
+                    transition: 'all 0.2s',
+                  },
+                }}
+              >
+                <PersonIcon />
+              </IconButton>
+            </Badge>
+            <Badge badgeContent={friendRequests.length} color="error">
               <Button
                 startIcon={<PersonIcon />}
                 onClick={() => navigate('/friends')}
                 sx={{
                   mx: 0.5,
+                  display: { xs: 'none', md: 'inline-flex' },
                   '&:hover': {
                     transform: 'translateY(-2px)',
                     transition: 'all 0.2s',
@@ -712,7 +766,7 @@ function Chat({ setIsAuthenticated }) {
               avatar={
                 <Avatar>{user?.name?.charAt(0).toUpperCase() || 'U'}</Avatar>
               }
-              sx={{ mx: 1 }}
+              sx={{ mx: 1, display: { xs: 'none', sm: 'flex' } }}
             />
             <IconButton onClick={handleLogout} color="error">
               <LogoutIcon />
@@ -763,7 +817,7 @@ function Chat({ setIsAuthenticated }) {
                   sx={{
                     p: 1.5,
                     mb: 1.5,
-                    maxWidth: '70%',
+                    maxWidth: { xs: '85%', sm: '75%', md: '70%' },
                     ml: msg.senderId === user?.id ? 'auto' : 0,
                     mr: msg.senderId === user?.id ? 0 : 'auto',
                     bgcolor:
@@ -843,11 +897,15 @@ function Chat({ setIsAuthenticated }) {
         </Box>
 
         {/* Input Area */}
-        <Paper elevation={3} sx={{ p: 2 }}>
+        <Paper elevation={3} sx={{ p: { xs: 1, sm: 2 } }}>
           <Box
             component="form"
             onSubmit={handleSendMessage}
-            sx={{ display: 'flex', gap: 1, alignItems: 'center' }}
+            sx={{
+              display: 'flex',
+              gap: { xs: 0.5, sm: 1 },
+              alignItems: 'center',
+            }}
           >
             <input
               id="fileInput"
