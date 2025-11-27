@@ -19,7 +19,7 @@ export const friendService = {
     try {
       const response = await apiClient.post('/friends/accept', {
         userId: userId,
-        fromId: fromId,
+        fromUser: fromId,
       });
       return response.data;
     } catch (error) {
