@@ -39,6 +39,7 @@ import {
   ChatBubbleOutline as ChatIcon,
   Group as GroupIcon,
   Person as PersonIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 
 function Chat({ setIsAuthenticated }) {
@@ -422,6 +423,19 @@ function Chat({ setIsAuthenticated }) {
     return foundUser ? foundUser.name : userId;
   };
 
+  const handleDeleteMessage = async (messageId) => {
+    if (!window.confirm('Are you sure you want to delete this message?'))
+      return;
+
+    try {
+      await messageService.deleteMessage(messageId);
+      // Message will be removed from UI via real-time listener
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      setError('Failed to delete message');
+    }
+  };
+
   // Manual refresh function for debugging
   const handleManualRefresh = async () => {
     if (conversationId) {
@@ -761,21 +775,39 @@ function Chat({ setIsAuthenticated }) {
                     sx={{
                       display: 'flex',
                       justifyContent: 'space-between',
+                      alignItems: 'center',
                       mb: 0.5,
                     }}
                   >
-                    <Typography
-                      variant="caption"
-                      fontWeight="bold"
-                      color="text.primary"
-                    >
-                      {msg.sender || getUserName(msg.senderId)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {msg.timestamp
-                        ? new Date(msg.timestamp * 1000).toLocaleTimeString()
-                        : new Date().toLocaleTimeString()}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography
+                        variant="caption"
+                        fontWeight="bold"
+                        color="text.primary"
+                      >
+                        {msg.sender || getUserName(msg.senderId)}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {msg.timestamp
+                          ? new Date(msg.timestamp * 1000).toLocaleTimeString()
+                          : new Date().toLocaleTimeString()}
+                      </Typography>
+                    </Box>
+                    {msg.senderId === user?.id && msg.messageId && (
+                      <IconButton
+                        size="small"
+                        color="error"
+                        onClick={() => handleDeleteMessage(msg.messageId)}
+                        sx={{
+                          '&:hover': {
+                            transform: 'scale(1.1)',
+                            transition: 'all 0.2s',
+                          },
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    )}
                   </Box>
                   <Typography variant="body1">
                     {msg.message || msg.text}

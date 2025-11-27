@@ -1,56 +1,12 @@
 import apiClient from './apiClient';
 
 export const friendService = {
-  // Get user's friend list
-  getFriends: async (userId) => {
-    try {
-      const response = await apiClient.get(`/users/${userId}/friends`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { error: 'Failed to get friends' };
-    }
-  },
-
-  // Add a friend
-  addFriend: async (userId, friendId) => {
-    try {
-      const response = await apiClient.post(`/users/${userId}/friends`, {
-        friendId,
-      });
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { error: 'Failed to add friend' };
-    }
-  },
-
-  // Remove a friend
-  removeFriend: async (userId, friendId) => {
-    try {
-      const response = await apiClient.delete(
-        `/users/${userId}/friends/${friendId}`
-      );
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { error: 'Failed to remove friend' };
-    }
-  },
-
-  // Search for users
-  searchUsers: async (query) => {
-    try {
-      const response = await apiClient.get(`/users/search?q=${query}`);
-      return response.data;
-    } catch (error) {
-      throw error.response?.data || { error: 'Failed to search users' };
-    }
-  },
-
-  // Send a friend request
+  // Send a friend request - POST /friends/request
   sendFriendRequest: async (fromId, toId) => {
     try {
       const response = await apiClient.post('/friends/request', {
-        fromUser: fromId,
-        toUser: toId,
+        fromId: fromId,
+        toId: toId,
       });
       return response.data;
     } catch (error) {
@@ -58,12 +14,12 @@ export const friendService = {
     }
   },
 
-  // Accept a friend request
-  acceptFriendRequest: async (userId, fromUserId) => {
+  // Accept a friend request - POST /friends/accept
+  acceptFriendRequest: async (userId, fromId) => {
     try {
       const response = await apiClient.post('/friends/accept', {
         userId: userId,
-        fromUser: fromUserId,
+        fromId: fromId,
       });
       return response.data;
     } catch (error) {
@@ -73,20 +29,48 @@ export const friendService = {
     }
   },
 
-  // Get list of friends (new endpoint)
+  // Reject a friend request - POST /friends/reject
+  rejectFriendRequest: async (userId, fromUser) => {
+    try {
+      const response = await apiClient.post('/friends/reject', {
+        userId: userId,
+        fromUser: fromUser,
+      });
+      return response.data;
+    } catch (error) {
+      throw (
+        error.response?.data || { error: 'Failed to reject friend request' }
+      );
+    }
+  },
+
+  // Remove a friend - POST /friends/delete
+  removeFriend: async (userA, userB) => {
+    try {
+      const response = await apiClient.post('/friends/delete', {
+        userA: userA,
+        userB: userB,
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || { error: 'Failed to remove friend' };
+    }
+  },
+
+  // Get list of friends - GET /friends/list/:userId
   getFriendsList: async (userId) => {
     try {
-      const response = await apiClient.get(`/friends/${userId}`);
+      const response = await apiClient.get(`/friends/list/${userId}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Failed to get friends list' };
     }
   },
 
-  // Get pending friend requests
+  // Get pending friend requests - GET /friends/requests/:userId
   getFriendRequests: async (userId) => {
     try {
-      const response = await apiClient.get(`/friends/${userId}/incoming`);
+      const response = await apiClient.get(`/friends/requests/${userId}`);
       return response.data;
     } catch (error) {
       throw error.response?.data || { error: 'Failed to get friend requests' };

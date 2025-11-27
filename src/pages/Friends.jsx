@@ -34,6 +34,8 @@ import {
   PersonAdd as PersonAddIcon,
   Check as CheckIcon,
   Notifications as NotificationsIcon,
+  PersonRemove as PersonRemoveIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 
 function Friends() {
@@ -111,6 +113,36 @@ function Friends() {
       setError('');
     } catch (err) {
       setError(err.error || 'Failed to accept friend request');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectRequest = async (fromUser) => {
+    try {
+      setLoading(true);
+      const currentUser = authService.getCurrentUser();
+      await friendService.rejectFriendRequest(currentUser.id, fromUser);
+      fetchFriendRequests();
+      setError('');
+    } catch (err) {
+      setError(err.error || 'Failed to reject friend request');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveFriend = async (friendId) => {
+    if (!window.confirm('Are you sure you want to remove this friend?')) return;
+
+    try {
+      setLoading(true);
+      const currentUser = authService.getCurrentUser();
+      await friendService.removeFriend(currentUser.id, friendId);
+      fetchFriends();
+      setError('');
+    } catch (err) {
+      setError(err.error || 'Failed to remove friend');
     } finally {
       setLoading(false);
     }
@@ -264,15 +296,15 @@ function Friends() {
                             {friend.email}
                           </Typography>
                         </CardContent>
-                        <CardActions sx={{ p: 2, pt: 0 }}>
+                        <CardActions sx={{ p: 2, pt: 0, gap: 1 }}>
                           <Button
-                            fullWidth
                             variant="contained"
                             startIcon={<ChatIcon />}
                             onClick={() =>
                               navigate(`/conversations?userId=${friendId}`)
                             }
                             sx={{
+                              flexGrow: 1,
                               '&:hover': {
                                 transform: 'scale(1.02)',
                                 transition: 'all 0.2s',
@@ -281,6 +313,19 @@ function Friends() {
                           >
                             Chat
                           </Button>
+                          <IconButton
+                            color="error"
+                            onClick={() => handleRemoveFriend(friendId)}
+                            disabled={loading}
+                            sx={{
+                              '&:hover': {
+                                transform: 'scale(1.1)',
+                                transition: 'all 0.2s',
+                              },
+                            }}
+                          >
+                            <PersonRemoveIcon />
+                          </IconButton>
                         </CardActions>
                       </Card>
                     </Grid>
@@ -357,13 +402,28 @@ function Friends() {
                             {requester.email}
                           </Typography>
                         </CardContent>
-                        <CardActions sx={{ p: 2, pt: 0 }}>
+                        <CardActions sx={{ p: 2, pt: 0, gap: 1 }}>
                           <Button
-                            fullWidth
                             variant="contained"
                             color="success"
                             startIcon={<CheckIcon />}
                             onClick={() => handleAcceptRequest(requestId)}
+                            disabled={loading}
+                            sx={{
+                              flexGrow: 1,
+                              '&:hover': {
+                                transform: 'scale(1.02)',
+                                transition: 'all 0.2s',
+                              },
+                            }}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            startIcon={<CloseIcon />}
+                            onClick={() => handleRejectRequest(requestId)}
                             disabled={loading}
                             sx={{
                               '&:hover': {
@@ -372,7 +432,7 @@ function Friends() {
                               },
                             }}
                           >
-                            Accept
+                            Reject
                           </Button>
                         </CardActions>
                       </Card>

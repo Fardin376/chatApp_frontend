@@ -26,4 +26,10 @@ export const messageService = {
     const response = await apiClient.post('/messages', payload);
     return response.data;
   },
+
+  // Delete a message - POST /messages/:messageId/delete
+  deleteMessage: async (messageId) => {
+    const response = await apiClient.post(`/messages/${messageId}/delete`);
+    return response.data;
+  },
 };
