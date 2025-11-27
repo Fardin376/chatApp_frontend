@@ -132,7 +132,9 @@ function Chat({ setIsAuthenticated }) {
           (realtimeRooms) => {
             console.log('📡 Real-time rooms update:', realtimeRooms);
             if (realtimeRooms.length > 0) {
-              setRooms(realtimeRooms.map((room) => ({ ...room, type: 'room' })));
+              setRooms(
+                realtimeRooms.map((room) => ({ ...room, type: 'room' }))
+              );
             }
           },
           (error) => {
