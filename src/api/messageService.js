@@ -2,7 +2,7 @@ import apiClient from './apiClient';
 
 export const messageService = {
   // Send a message to a room or conversation
-  // document can be either a filename string or an object with { filename, data }
+  // document should be an object with { filename, data } where data is base64 encoded
   sendMessage: async (
     senderId,
     message,
@@ -18,11 +18,9 @@ export const messageService = {
     };
 
     // Add document field only if provided
-    // Backend expects just the filename string (e.g., "file.pdf", "image.png", "doc.docx")
+    // Backend expects document as object: { filename: 'file.jpg', data: 'base64string' }
     if (document) {
-      // If document is an object with filename, extract just the filename
-      payload.document =
-        typeof document === 'object' ? document.filename : document;
+      payload.document = document;
     }
 
     const response = await apiClient.post('/messages', payload);

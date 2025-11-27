@@ -352,14 +352,29 @@ function Chat({ setIsAuthenticated }) {
 
       // Send message via API if in a room or conversation
       if (roomId || conversationId) {
-        // Send filename to backend - backend expects just the filename string
-        const documentName = documentFile ? documentFile.name : null;
+        let documentData = null;
+
+        // Convert file to base64 if exists
+        if (documentFile) {
+          const reader = new FileReader();
+          documentData = await new Promise((resolve, reject) => {
+            reader.onload = () => {
+              const base64 = reader.result.split(',')[1];
+              resolve({
+                filename: documentFile.name,
+                data: base64,
+              });
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(documentFile);
+          });
+        }
 
         console.log('Sending message to:', {
           roomId,
           conversationId,
           userId: user.id,
-          document: documentName,
+          document: documentData ? documentData.filename : null,
         });
 
         const sendResult = await messageService.sendMessage(
@@ -367,7 +382,7 @@ function Chat({ setIsAuthenticated }) {
           newMessage,
           roomId,
           conversationId,
-          documentName
+          documentData
         );
         console.log('Message sent successfully:', sendResult);
 
