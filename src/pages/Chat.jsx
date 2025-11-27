@@ -7,7 +7,39 @@ import { conversationService } from '../api/conversationService';
 import { messageService } from '../api/messageService';
 import { friendService } from '../api/friendService';
 import firestoreService from '../api/firestoreService';
-import styles from './Chat.module.css';
+import {
+  Box,
+  Drawer,
+  AppBar,
+  Toolbar,
+  List,
+  Typography,
+  Divider,
+  IconButton,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  TextField,
+  Button,
+  Paper,
+  Avatar,
+  Chip,
+  CircularProgress,
+  Alert,
+  InputAdornment,
+  Fab,
+  Badge,
+} from '@mui/material';
+import {
+  Menu as MenuIcon,
+  Send as SendIcon,
+  AttachFile as AttachFileIcon,
+  ExitToApp as LogoutIcon,
+  Refresh as RefreshIcon,
+  ChatBubbleOutline as ChatIcon,
+  Group as GroupIcon,
+  Person as PersonIcon,
+} from '@mui/icons-material';
 
 function Chat({ setIsAuthenticated }) {
   const [messages, setMessages] = useState([]);
@@ -22,6 +54,12 @@ function Chat({ setIsAuthenticated }) {
   const [rooms, setRooms] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [typingUsers, setTypingUsers] = useState([]);
+  const [unreadCounts, setUnreadCounts] = useState({
+    rooms: {},
+    conversations: {},
+    total: 0,
+  });
+  const [friendRequests, setFriendRequests] = useState([]);
   const [searchParams] = useSearchParams();
   const messagesEndRef = useRef(null);
   const navigate = useNavigate();
@@ -33,6 +71,8 @@ function Chat({ setIsAuthenticated }) {
   useEffect(() => {
     const currentUser = authService.getCurrentUser();
     setUser(currentUser);
+
+    if (!currentUser?.id) return;
 
     // Fetch all users first (needed for name lookups)
     const fetchUsers = async () => {
@@ -46,58 +86,73 @@ function Chat({ setIsAuthenticated }) {
       }
     };
 
-    // Fetch all rooms with latest message
-    const fetchRooms = async () => {
+    // Setup real-time listeners
+    const setupRealtimeListeners = async () => {
       try {
-        const roomsData = await roomService.getAllRooms();
-        const roomsWithMessages = await Promise.all(
-          roomsData.map(async (room) => {
-            try {
-              const msgs = await roomService.getRoomMessages(room.roomId);
-              const lastMsg = msgs.length > 0 ? msgs[msgs.length - 1] : null;
-              return { ...room, lastMessage: lastMsg, type: 'room' };
-            } catch {
-              return { ...room, lastMessage: null, type: 'room' };
-            }
-          })
+        // Subscribe to rooms with real-time updates
+        await firestoreService.subscribeToRooms(
+          currentUser.id,
+          (realtimeRooms) => {
+            console.log('📡 Real-time rooms update:', realtimeRooms);
+            setRooms(realtimeRooms.map((room) => ({ ...room, type: 'room' })));
+          },
+          (error) => {
+            console.error('❌ Rooms subscription error:', error);
+          }
         );
-        setRooms(roomsWithMessages);
-      } catch (error) {
-        console.error('Failed to fetch rooms:', error);
-      }
-    };
 
-    // Fetch conversations from friends list (requires users to be loaded first)
-    const fetchConversationsFromFriends = async (allUsers) => {
-      try {
-        const friendsList = await friendService.getFriendsList(currentUser.id);
-        // Create conversation entries for each friend
-        const convos = (friendsList.friends || []).map((friendId) => {
-          const friend = allUsers.find((u) => u.id === friendId);
-          // Sort user IDs alphabetically to ensure consistent conversation ID
-          const sortedIds = [currentUser.id, friendId].sort();
-          return {
-            conversationId: `${sortedIds[0]}_${sortedIds[1]}`,
-            participants: [currentUser.id, friendId],
-            friendName: friend?.name || 'Unknown User',
-            friendId: friendId,
-            lastMessage: null,
-            type: 'conversation',
-          };
-        });
-        setConversations(convos);
+        // Subscribe to conversations with real-time updates
+        await firestoreService.subscribeToConversations(
+          currentUser.id,
+          (realtimeConversations) => {
+            console.log(
+              '📡 Real-time conversations update:',
+              realtimeConversations
+            );
+            setConversations(
+              realtimeConversations.map((conv) => ({
+                ...conv,
+                type: 'conversation',
+              }))
+            );
+          },
+          (error) => {
+            console.error('❌ Conversations subscription error:', error);
+          }
+        );
+
+        // Subscribe to friend requests
+        await firestoreService.subscribeToFriendRequests(
+          currentUser.id,
+          (requests) => {
+            console.log('📡 Real-time friend requests:', requests);
+            setFriendRequests(requests);
+          },
+          (error) => {
+            console.error('❌ Friend requests subscription error:', error);
+          }
+        );
+
+        // Subscribe to unread message counts
+        await firestoreService.subscribeToUnreadCounts(
+          currentUser.id,
+          (counts) => {
+            console.log('📡 Real-time unread counts:', counts);
+            setUnreadCounts(counts);
+          },
+          (error) => {
+            console.error('❌ Unread counts subscription error:', error);
+          }
+        );
       } catch (error) {
-        console.error('Failed to fetch conversations:', error);
+        console.error('❌ Failed to setup real-time listeners:', error);
       }
     };
 
     // Initialize data in correct order
     const initializeData = async () => {
-      const allUsers = await fetchUsers();
-      await fetchRooms();
-      if (currentUser) {
-        await fetchConversationsFromFriends(allUsers);
-      }
+      await fetchUsers();
+      await setupRealtimeListeners();
     };
 
     initializeData();
@@ -226,13 +281,9 @@ function Chat({ setIsAuthenticated }) {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.type !== 'application/pdf') {
-        setError('Only PDF files are allowed');
-        e.target.value = '';
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) {
-        setError('File size must be less than 5MB');
+      // Allow any file type - no restrictions
+      if (file.size > 10 * 1024 * 1024) {
+        setError('File size must be less than 10MB');
         e.target.value = '';
         return;
       }
@@ -256,35 +307,22 @@ function Chat({ setIsAuthenticated }) {
 
       // Send message via API if in a room or conversation
       if (roomId || conversationId) {
-        let documentData = null;
-
-        // Convert file to base64 if exists
-        if (documentFile) {
-          const reader = new FileReader();
-          documentData = await new Promise((resolve, reject) => {
-            reader.onload = () => {
-              const base64 = reader.result.split(',')[1];
-              resolve({
-                filename: documentFile.name,
-                data: base64,
-              });
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(documentFile);
-          });
-        }
+        // Send filename to backend - backend expects just the filename string
+        const documentName = documentFile ? documentFile.name : null;
 
         console.log('Sending message to:', {
           roomId,
           conversationId,
           userId: user.id,
+          document: documentName,
         });
+
         const sendResult = await messageService.sendMessage(
           user.id,
           newMessage,
           roomId,
           conversationId,
-          documentData
+          documentName
         );
         console.log('Message sent successfully:', sendResult);
 
@@ -357,265 +395,434 @@ function Chat({ setIsAuthenticated }) {
   };
 
   return (
-    <div className={styles.container}>
-      {/* Sidebar */}
-      <aside
-        className={`${styles.sidebar} ${
-          !sidebarOpen ? styles.sidebarClosed : ''
-        }`}
+    <Box sx={{ display: 'flex', height: '100vh' }}>
+      {/* Sidebar Drawer */}
+      <Drawer
+        variant="persistent"
+        open={sidebarOpen}
+        sx={{
+          width: 280,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: 280,
+            boxSizing: 'border-box',
+            borderRight: '1px solid #e0e0e0',
+          },
+        }}
       >
-        <div className={styles.sidebarHeader}>
-          <h2 className={styles.sidebarTitle}>Chats</h2>
-          <button
-            className={styles.sidebarToggle}
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? '‹' : '›'}
-          </button>
-        </div>
+        <Box
+          sx={{
+            p: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <Typography variant="h6" fontWeight="bold">
+            Chats
+          </Typography>
+          <IconButton onClick={() => setSidebarOpen(false)} size="small">
+            <MenuIcon />
+          </IconButton>
+        </Box>
+        <Divider />
 
-        {sidebarOpen && (
-          <div className={styles.sidebarContent}>
-            {/* Rooms Section */}
-            {rooms.length > 0 && (
-              <div className={styles.sidebarSection}>
-                <h3 className={styles.sidebarSectionTitle}>Rooms</h3>
-                {rooms.map((room) => (
-                  <div
-                    key={room.roomId}
-                    className={`${styles.chatItem} ${
-                      roomId === room.roomId ? styles.chatItemActive : ''
-                    }`}
-                    onClick={() => navigate(`/chat?roomId=${room.roomId}`)}
+        {/* Rooms Section */}
+        {rooms.length > 0 && (
+          <Box sx={{ mt: 1 }}>
+            <Typography
+              variant="caption"
+              sx={{ px: 2, py: 1, color: 'text.secondary', fontWeight: 600 }}
+            >
+              ROOMS
+            </Typography>
+            <List sx={{ py: 0 }}>
+              {rooms.map((room) => (
+                <ListItemButton
+                  key={room.roomId}
+                  selected={roomId === room.roomId}
+                  onClick={() => navigate(`/chat?roomId=${room.roomId}`)}
+                  sx={{
+                    '&:hover': {
+                      backgroundColor: 'action.hover',
+                      transform: 'translateX(4px)',
+                      transition: 'all 0.2s',
+                    },
+                    '&.Mui-selected': {
+                      backgroundColor: 'primary.light',
+                      '&:hover': {
+                        backgroundColor: 'primary.light',
+                      },
+                    },
+                    borderRadius: 1,
+                    mx: 1,
+                    mb: 0.5,
+                  }}
+                >
+                  <Badge
+                    badgeContent={unreadCounts.rooms[room.roomId] || 0}
+                    color="error"
+                    sx={{ mr: 2 }}
                   >
-                    <div className={styles.chatItemAvatar}>🏠</div>
-                    <div className={styles.chatItemContent}>
-                      <div className={styles.chatItemName}>{room.roomName}</div>
-                      {room.lastMessage && (
-                        <div className={styles.chatItemMessage}>
-                          {room.lastMessage.message?.substring(0, 30)}...
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Conversations Section */}
-            {conversations.length > 0 && (
-              <div className={styles.sidebarSection}>
-                <h3 className={styles.sidebarSectionTitle}>Private Chats</h3>
-                {conversations.map((conv) => (
-                  <div
-                    key={conv.conversationId}
-                    className={`${styles.chatItem} ${
-                      conversationId === conv.conversationId
-                        ? styles.chatItemActive
-                        : ''
-                    }`}
-                    onClick={async () => {
-                      try {
-                        const response =
-                          await conversationService.createConversation(
-                            user.id,
-                            conv.friendId
-                          );
-                        navigate(
-                          `/chat?conversationId=${response.conversationId}`
-                        );
-                      } catch (error) {
-                        console.error('Failed to open conversation:', error);
-                      }
+                    <Avatar sx={{ bgcolor: 'primary.main' }}>
+                      <GroupIcon />
+                    </Avatar>
+                  </Badge>
+                  <ListItemText
+                    primary={room.roomName}
+                    primaryTypographyProps={{
+                      fontWeight: unreadCounts.rooms[room.roomId] ? 600 : 400,
                     }}
-                  >
-                    <div className={styles.chatItemAvatar}>
-                      {conv.friendName.charAt(0).toUpperCase()}
-                    </div>
-                    <div className={styles.chatItemContent}>
-                      <div className={styles.chatItemName}>
-                        {conv.friendName}
-                      </div>
-                      {conv.lastMessage && (
-                        <div className={styles.chatItemMessage}>
-                          {conv.lastMessage.message?.substring(0, 30)}...
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {rooms.length === 0 && conversations.length === 0 && (
-              <div className={styles.sidebarEmpty}>
-                <p>No chats yet</p>
-                <p className={styles.sidebarEmptyHint}>
-                  Start a conversation or join a room
-                </p>
-              </div>
-            )}
-          </div>
+                  />
+                </ListItemButton>
+              ))}
+            </List>
+          </Box>
         )}
-      </aside>
+
+        {/* Conversations Section */}
+        {conversations.length > 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Typography
+              variant="caption"
+              sx={{ px: 2, py: 1, color: 'text.secondary', fontWeight: 600 }}
+            >
+              PRIVATE CHATS
+            </Typography>
+            <List sx={{ py: 0 }}>
+              {conversations.map((conv) => (
+                <ListItemButton
+                  key={conv.conversationId}
+                  selected={conversationId === conv.conversationId}
+                  onClick={async () => {
+                    try {
+                      const response =
+                        await conversationService.createConversation(
+                          user.id,
+                          conv.friendId
+                        );
+                      navigate(
+                        `/chat?conversationId=${response.conversationId}`
+                      );
+                    } catch (error) {
+                      console.error('Failed to open conversation:', error);
+                    }
+                  }}
+                  sx={{
+                    '&:hover': {
+                      backgroundColor: 'action.hover',
+                      transform: 'translateX(4px)',
+                      transition: 'all 0.2s',
+                    },
+                    '&.Mui-selected': {
+                      backgroundColor: 'primary.light',
+                      '&:hover': {
+                        backgroundColor: 'primary.light',
+                      },
+                    },
+                    borderRadius: 1,
+                    mx: 1,
+                    mb: 0.5,
+                  }}
+                >
+                  <Badge
+                    badgeContent={
+                      unreadCounts.conversations[conv.conversationId] || 0
+                    }
+                    color="error"
+                    sx={{ mr: 2 }}
+                  >
+                    <Avatar sx={{ bgcolor: 'secondary.main' }}>
+                      {conv.friendName?.charAt(0).toUpperCase() || 'U'}
+                    </Avatar>
+                  </Badge>
+                  <ListItemText
+                    primary={conv.friendName}
+                    primaryTypographyProps={{
+                      fontWeight: unreadCounts.conversations[
+                        conv.conversationId
+                      ]
+                        ? 600
+                        : 400,
+                    }}
+                  />
+                </ListItemButton>
+              ))}
+            </List>
+          </Box>
+        )}
+
+        {rooms.length === 0 && conversations.length === 0 && (
+          <Box sx={{ p: 3, textAlign: 'center', color: 'text.secondary' }}>
+            <ChatIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+            <Typography variant="body2">No chats yet</Typography>
+            <Typography variant="caption">
+              Start a conversation or join a room
+            </Typography>
+          </Box>
+        )}
+      </Drawer>
 
       {/* Main Content */}
-      <div className={styles.mainContent}>
-        {/* Header */}
-        <header className={styles.header}>
-          <div className={styles.headerContent}>
-            <h1 className={styles.headerTitle}>{getChatTitle()}</h1>
-            <div className={styles.headerActions}>
-              {(roomId || conversationId) && (
-                <button
-                  onClick={handleManualRefresh}
-                  className={styles.refreshButton}
-                  disabled={loading}
-                  title="Refresh messages"
-                >
-                  🔄
-                </button>
-              )}
-              <button
-                onClick={() => navigate('/rooms')}
-                className={styles.navButton}
+      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Header AppBar */}
+        <AppBar position="static" color="default" elevation={1}>
+          <Toolbar>
+            {!sidebarOpen && (
+              <IconButton
+                edge="start"
+                onClick={() => setSidebarOpen(true)}
+                sx={{ mr: 2 }}
               >
-                Rooms
-              </button>
-              <button
-                onClick={() => navigate('/conversations')}
-                className={styles.navButton}
+                <MenuIcon />
+              </IconButton>
+            )}
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              {getChatTitle()}
+            </Typography>
+
+            {(roomId || conversationId) && (
+              <IconButton
+                onClick={handleManualRefresh}
+                disabled={loading}
+                color="primary"
               >
-                Conversations
-              </button>
-              <button
+                <RefreshIcon />
+              </IconButton>
+            )}
+
+            <Button
+              startIcon={<GroupIcon />}
+              onClick={() => navigate('/rooms')}
+              sx={{
+                mx: 0.5,
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  transition: 'all 0.2s',
+                },
+              }}
+            >
+              Rooms
+            </Button>
+            <Button
+              startIcon={<ChatIcon />}
+              onClick={() => navigate('/conversations')}
+              sx={{
+                mx: 0.5,
+                '&:hover': {
+                  transform: 'translateY(-2px)',
+                  transition: 'all 0.2s',
+                },
+              }}
+            >
+              Conversations
+            </Button>
+            <Badge badgeContent={friendRequests.length} color="error">
+              <Button
+                startIcon={<PersonIcon />}
                 onClick={() => navigate('/friends')}
-                className={styles.navButton}
+                sx={{
+                  mx: 0.5,
+                  '&:hover': {
+                    transform: 'translateY(-2px)',
+                    transition: 'all 0.2s',
+                  },
+                }}
               >
                 Friends
-              </button>
-            </div>
-            <div className={styles.userSection}>
-              <span className={styles.userName}>{user?.name || 'User'}</span>
-              <button onClick={handleLogout} className={styles.logoutButton}>
-                Logout
-              </button>
-            </div>
-          </div>
-        </header>
+              </Button>
+            </Badge>
 
-        {/* Main chat area */}
-        <main className={styles.main}>
+            <Chip
+              label={user?.name || 'User'}
+              avatar={
+                <Avatar>{user?.name?.charAt(0).toUpperCase() || 'U'}</Avatar>
+              }
+              sx={{ mx: 1 }}
+            />
+            <IconButton onClick={handleLogout} color="error">
+              <LogoutIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+
+        {/* Messages Area */}
+        <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2, bgcolor: '#f5f5f5' }}>
           {error && (
-            <div className={styles.errorBanner}>
+            <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
               {error}
-              <button
-                onClick={() => setError('')}
-                className={styles.closeError}
-              >
-                ×
-              </button>
-            </div>
+            </Alert>
           )}
-          <div className={styles.messagesContainer}>
-            {loading && messages.length === 0 ? (
-              <div className={styles.emptyState}>
-                <p>Loading messages...</p>
-              </div>
-            ) : messages.length === 0 ? (
-              <div className={styles.emptyState}>
-                <p>No messages yet. Start the conversation!</p>
-              </div>
-            ) : (
-              messages.map((msg, index) => (
-                <div
+
+          {loading && messages.length === 0 ? (
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100%',
+              }}
+            >
+              <CircularProgress />
+            </Box>
+          ) : messages.length === 0 ? (
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                color: 'text.secondary',
+              }}
+            >
+              <ChatIcon sx={{ fontSize: 64, mb: 2, opacity: 0.3 }} />
+              <Typography variant="h6">No messages yet</Typography>
+              <Typography variant="body2">Start the conversation!</Typography>
+            </Box>
+          ) : (
+            <Box>
+              {messages.map((msg, index) => (
+                <Paper
                   key={index}
-                  className={`${styles.message} ${
-                    msg.senderId === user?.id
-                      ? styles.messageSent
-                      : styles.messageReceived
-                  }`}
+                  elevation={1}
+                  sx={{
+                    p: 1.5,
+                    mb: 1.5,
+                    maxWidth: '70%',
+                    ml: msg.senderId === user?.id ? 'auto' : 0,
+                    mr: msg.senderId === user?.id ? 0 : 'auto',
+                    bgcolor:
+                      msg.senderId === user?.id ? 'primary.light' : 'white',
+                    borderRadius: 2,
+                  }}
                 >
-                  <div className={styles.messageHeader}>
-                    <span className={styles.messageSender}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      mb: 0.5,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      fontWeight="bold"
+                      color="text.primary"
+                    >
                       {msg.sender || getUserName(msg.senderId)}
-                    </span>
-                    <span className={styles.messageTime}>
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
                       {msg.timestamp
                         ? new Date(msg.timestamp * 1000).toLocaleTimeString()
                         : new Date().toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <div className={styles.messageText}>
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1">
                     {msg.message || msg.text}
-                  </div>
+                  </Typography>
                   {msg.document && (
-                    <a
+                    <Button
+                      size="small"
+                      startIcon={<AttachFileIcon />}
                       href={msg.document}
                       target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.messageDocument}
+                      sx={{ mt: 1 }}
                     >
-                      📄 View Document
-                    </a>
+                      View Document
+                    </Button>
                   )}
-                </div>
-              ))
-            )}
-            <div ref={messagesEndRef} />
-            {/* Typing indicator */}
-            {typingUsers.length > 0 && (
-              <div className={styles.typingIndicator}>
-                <span className={styles.typingText}>
-                  {typingUsers.map((userId) => getUserName(userId)).join(', ')}{' '}
-                  {typingUsers.length === 1 ? 'is' : 'are'} typing
-                </span>
-                <span className={styles.typingDots}>
-                  <span>.</span>
-                  <span>.</span>
-                  <span>.</span>
-                </span>
-              </div>
-            )}
-          </div>
-        </main>
+                </Paper>
+              ))}
+              <div ref={messagesEndRef} />
+              {/* Typing indicator */}
+              {typingUsers.length > 0 && (
+                <Chip
+                  label={`${typingUsers
+                    .map((userId) => getUserName(userId))
+                    .join(', ')} ${
+                    typingUsers.length === 1 ? 'is' : 'are'
+                  } typing...`}
+                  size="small"
+                  sx={{ mt: 1 }}
+                />
+              )}
+            </Box>
+          )}
+        </Box>
 
-        {/* Input area */}
-        <footer className={styles.footer}>
-          <form onSubmit={handleSendMessage} className={styles.inputForm}>
-            <div className={styles.fileInputWrapper}>
-              <label htmlFor="fileInput" className={styles.fileLabel}>
-                📎
-              </label>
-              <input
-                id="fileInput"
-                type="file"
-                accept=".pdf"
-                onChange={handleFileChange}
-                className={styles.fileInput}
-              />
-            </div>
-            {attachedDocument && (
-              <span className={styles.fileName}>📄 {attachedDocument}</span>
-            )}
+        {/* Input Area */}
+        <Paper elevation={3} sx={{ p: 2 }}>
+          <Box
+            component="form"
+            onSubmit={handleSendMessage}
+            sx={{ display: 'flex', gap: 1, alignItems: 'center' }}
+          >
             <input
-              type="text"
+              id="fileInput"
+              type="file"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+            <label htmlFor="fileInput">
+              <IconButton
+                component="span"
+                color="primary"
+                sx={{
+                  '&:hover': {
+                    transform: 'scale(1.1)',
+                    transition: 'all 0.2s',
+                  },
+                }}
+              >
+                <AttachFileIcon />
+              </IconButton>
+            </label>
+            {attachedDocument && (
+              <Chip
+                label={attachedDocument}
+                onDelete={() => {
+                  setAttachedDocument(null);
+                  setDocumentFile(null);
+                  const fileInput = document.getElementById('fileInput');
+                  if (fileInput) fileInput.value = '';
+                }}
+                size="small"
+                color="primary"
+                variant="outlined"
+              />
+            )}
+            <TextField
+              fullWidth
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
-              className={styles.input}
+              variant="outlined"
+              size="small"
+              disabled={loading}
             />
-            <button
+            <IconButton
               type="submit"
-              className={styles.sendButton}
+              color="primary"
               disabled={!newMessage.trim() || loading}
+              sx={{
+                bgcolor: 'primary.main',
+                color: 'white',
+                '&:hover': {
+                  bgcolor: 'primary.dark',
+                  transform: 'scale(1.1)',
+                  transition: 'all 0.2s',
+                },
+                '&:disabled': {
+                  bgcolor: 'action.disabledBackground',
+                },
+              }}
             >
-              {loading ? 'Sending...' : 'Send'}
-            </button>
-          </form>
-        </footer>
-      </div>
-    </div>
+              <SendIcon />
+            </IconButton>
+          </Box>
+        </Paper>
+      </Box>
+    </Box>
   );
 }
 

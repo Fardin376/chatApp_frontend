@@ -174,6 +174,204 @@ class FirestoreService {
     }
   }
 
+  // Subscribe to rooms list
+  async subscribeToRooms(userId, callback, errorCallback) {
+    try {
+      await ensureAuth();
+
+      const roomsRef = collection(db, 'rooms');
+      const q = query(roomsRef);
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const rooms = [];
+          snapshot.forEach((doc) => {
+            const roomData = { roomId: doc.id, ...doc.data() };
+            // Filter rooms where user is a member
+            if (roomData.members && roomData.members.includes(userId)) {
+              rooms.push(roomData);
+            }
+          });
+          callback(rooms);
+        },
+        (error) => {
+          console.error('Error listening to rooms:', error);
+          if (errorCallback) errorCallback(error);
+        }
+      );
+
+      this.unsubscribers.set(`rooms_${userId}`, unsubscribe);
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error subscribing to rooms:', error);
+      if (errorCallback) errorCallback(error);
+    }
+  }
+
+  // Subscribe to conversations list
+  async subscribeToConversations(userId, callback, errorCallback) {
+    try {
+      await ensureAuth();
+
+      const conversationsRef = collection(db, 'conversations');
+      const q = query(conversationsRef);
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const conversations = [];
+          snapshot.forEach((doc) => {
+            const convData = { conversationId: doc.id, ...doc.data() };
+            // Filter conversations where user is a participant
+            if (
+              convData.participants &&
+              convData.participants.includes(userId)
+            ) {
+              conversations.push(convData);
+            }
+          });
+          callback(conversations);
+        },
+        (error) => {
+          console.error('Error listening to conversations:', error);
+          if (errorCallback) errorCallback(error);
+        }
+      );
+
+      this.unsubscribers.set(`conversations_${userId}`, unsubscribe);
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error subscribing to conversations:', error);
+      if (errorCallback) errorCallback(error);
+    }
+  }
+
+  // Subscribe to friend requests
+  async subscribeToFriendRequests(userId, callback, errorCallback) {
+    try {
+      await ensureAuth();
+
+      const friendsRef = collection(db, 'friends');
+      const q = query(
+        friendsRef,
+        where('receiverId', '==', userId),
+        where('status', '==', 'pending')
+      );
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const requests = [];
+          snapshot.forEach((doc) => {
+            requests.push({ requestId: doc.id, ...doc.data() });
+          });
+          callback(requests);
+        },
+        (error) => {
+          console.error('Error listening to friend requests:', error);
+          if (errorCallback) errorCallback(error);
+        }
+      );
+
+      this.unsubscribers.set(`friend_requests_${userId}`, unsubscribe);
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error subscribing to friend requests:', error);
+      if (errorCallback) errorCallback(error);
+    }
+  }
+
+  // Subscribe to friends list
+  async subscribeToFriends(userId, callback, errorCallback) {
+    try {
+      await ensureAuth();
+
+      const friendsRef = collection(db, 'friends');
+      const q = query(friendsRef, where('status', '==', 'accepted'));
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const friends = [];
+          snapshot.forEach((doc) => {
+            const friendData = doc.data();
+            // Filter friends where user is sender or receiver
+            if (
+              friendData.senderId === userId ||
+              friendData.receiverId === userId
+            ) {
+              friends.push({ friendId: doc.id, ...friendData });
+            }
+          });
+          callback(friends);
+        },
+        (error) => {
+          console.error('Error listening to friends:', error);
+          if (errorCallback) errorCallback(error);
+        }
+      );
+
+      this.unsubscribers.set(`friends_${userId}`, unsubscribe);
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error subscribing to friends:', error);
+      if (errorCallback) errorCallback(error);
+    }
+  }
+
+  // Subscribe to unread message counts for a user
+  async subscribeToUnreadCounts(userId, callback, errorCallback) {
+    try {
+      await ensureAuth();
+
+      const messagesRef = collection(db, 'messages');
+      const q = query(
+        messagesRef,
+        where('read', '==', false),
+        orderBy('timestamp', 'desc')
+      );
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const unreadCounts = {
+            rooms: {},
+            conversations: {},
+            total: 0,
+          };
+
+          snapshot.forEach((doc) => {
+            const msg = doc.data();
+            // Only count messages not sent by current user
+            if (msg.senderId !== userId) {
+              if (msg.roomId) {
+                unreadCounts.rooms[msg.roomId] =
+                  (unreadCounts.rooms[msg.roomId] || 0) + 1;
+              } else if (msg.conversationId) {
+                unreadCounts.conversations[msg.conversationId] =
+                  (unreadCounts.conversations[msg.conversationId] || 0) + 1;
+              }
+              unreadCounts.total++;
+            }
+          });
+
+          callback(unreadCounts);
+        },
+        (error) => {
+          console.error('Error listening to unread counts:', error);
+          if (errorCallback) errorCallback(error);
+        }
+      );
+
+      this.unsubscribers.set(`unread_${userId}`, unsubscribe);
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error subscribing to unread counts:', error);
+      if (errorCallback) errorCallback(error);
+    }
+  }
+
   // Unsubscribe from all listeners
   unsubscribeAll() {
     this.unsubscribers.forEach((unsubscribe) => {

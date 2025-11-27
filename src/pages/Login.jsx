@@ -1,7 +1,17 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authService } from '../api/authService';
-import styles from './Login.module.css';
+import {
+  Container,
+  Paper,
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Alert,
+  Link as MuiLink,
+} from '@mui/material';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 
 function Login({ setIsAuthenticated }) {
   const [formData, setFormData] = useState({
@@ -37,63 +47,103 @@ function Login({ setIsAuthenticated }) {
   };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.card}>
-        <div className={styles.header}>
-          <h1 className={styles.title}>Welcome Back</h1>
-          <p className={styles.subtitle}>Sign in to continue to Chat App</p>
-        </div>
+    <Container
+      maxWidth="sm"
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: 4,
+      }}
+    >
+      <Paper
+        elevation={3}
+        sx={{
+          p: 4,
+          width: '100%',
+          borderRadius: 2,
+        }}
+      >
+        <Box sx={{ textAlign: 'center', mb: 3 }}>
+          <ChatBubbleOutlineIcon
+            sx={{ fontSize: 48, color: 'primary.main', mb: 2 }}
+          />
+          <Typography
+            variant="h4"
+            component="h1"
+            gutterBottom
+            fontWeight="bold"
+          >
+            Welcome Back
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Sign in to continue to Chat App
+          </Typography>
+        </Box>
 
-        <form onSubmit={handleSubmit} className={styles.form}>
-          {error && <div className={styles.error}>{error}</div>}
+        <Box component="form" onSubmit={handleSubmit} noValidate>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
 
-          <div className={styles.formGroup}>
-            <label htmlFor="email" className={styles.label}>
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className={styles.input}
-              placeholder="Enter your email"
-              required
-            />
-          </div>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            id="email"
+            label="Email Address"
+            name="email"
+            autoComplete="email"
+            autoFocus
+            value={formData.email}
+            onChange={handleChange}
+            sx={{ mb: 2 }}
+          />
 
-          <div className={styles.formGroup}>
-            <label htmlFor="password" className={styles.label}>
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className={styles.input}
-              placeholder="Enter your password"
-              required
-            />
-          </div>
+          <TextField
+            margin="normal"
+            required
+            fullWidth
+            name="password"
+            label="Password"
+            type="password"
+            id="password"
+            autoComplete="current-password"
+            value={formData.password}
+            onChange={handleChange}
+            sx={{ mb: 3 }}
+          />
 
-          <button type="submit" className={styles.button} disabled={loading}>
+          <Button
+            type="submit"
+            fullWidth
+            variant="contained"
+            size="large"
+            disabled={loading}
+            sx={{ mb: 2, py: 1.5 }}
+          >
             {loading ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
+          </Button>
 
-        <div className={styles.footer}>
-          <p className={styles.footerText}>
-            Don't have an account?{' '}
-            <Link to="/signup" className={styles.link}>
-              Sign up
-            </Link>
-          </p>
-        </div>
-      </div>
-    </div>
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Don't have an account?{' '}
+              <MuiLink
+                component={Link}
+                to="/signup"
+                underline="hover"
+                sx={{ fontWeight: 'bold' }}
+              >
+                Sign up
+              </MuiLink>
+            </Typography>
+          </Box>
+        </Box>
+      </Paper>
+    </Container>
   );
 }
 
