@@ -103,16 +103,15 @@ function Chat({ setIsAuthenticated }) {
       try {
         const friendsList = await friendService.getFriendsList(currentUser.id);
         console.log('👥 Fetched friends list:', friendsList);
-        // Create conversation entries for each friend
-        const convos = (friendsList.friends || []).map((friendId) => {
-          const friend = allUsers.find((u) => u.id === friendId);
+        // friendsList is now an array of friend objects: [{id, name, email}, ...]
+        const convos = (friendsList || []).map((friend) => {
           // Sort user IDs alphabetically to ensure consistent conversation ID
-          const sortedIds = [currentUser.id, friendId].sort();
+          const sortedIds = [currentUser.id, friend.id].sort();
           return {
             conversationId: `${sortedIds[0]}_${sortedIds[1]}`,
-            participants: [currentUser.id, friendId],
-            friendName: friend?.name || 'Unknown User',
-            friendId: friendId,
+            participants: [currentUser.id, friend.id],
+            friendName: friend.name || 'Unknown User',
+            friendId: friend.id,
             lastMessage: null,
             type: 'conversation',
           };

@@ -58,7 +58,8 @@ function Friends() {
     try {
       const currentUser = authService.getCurrentUser();
       const response = await friendService.getFriendsList(currentUser.id);
-      setFriends(response.friends || []);
+      // Response is now an array of friend objects: [{id, name, email}, ...]
+      setFriends(response || []);
     } catch (err) {
       console.error('Failed to fetch friends:', err);
     }
@@ -68,7 +69,8 @@ function Friends() {
     try {
       const currentUser = authService.getCurrentUser();
       const response = await friendService.getFriendRequests(currentUser.id);
-      setFriendRequests(response.incomingRequests || []);
+      // Response is now an array of request objects: [{id, fromId, name, email}, ...]
+      setFriendRequests(response || []);
     } catch (err) {
       console.error('Failed to fetch friend requests:', err);
     }
@@ -254,10 +256,10 @@ function Friends() {
               </Paper>
             ) : (
               <Grid container spacing={3}>
-                {friends.map((friendId) => {
-                  const friend = getUserInfo(friendId);
+                {friends.map((friend) => {
+                  // friend is now an object: {id, name, email}
                   return (
-                    <Grid item xs={12} sm={6} md={4} key={friendId}>
+                    <Grid item xs={12} sm={6} md={4} key={friend.id}>
                       <Card
                         elevation={2}
                         sx={{
@@ -301,7 +303,7 @@ function Friends() {
                             variant="contained"
                             startIcon={<ChatIcon />}
                             onClick={() =>
-                              navigate(`/conversations?userId=${friendId}`)
+                              navigate(`/conversations?userId=${friend.id}`)
                             }
                             sx={{
                               flexGrow: 1,
@@ -315,7 +317,7 @@ function Friends() {
                           </Button>
                           <IconButton
                             color="error"
-                            onClick={() => handleRemoveFriend(friendId)}
+                            onClick={() => handleRemoveFriend(friend.id)}
                             disabled={loading}
                             sx={{
                               '&:hover': {
@@ -360,10 +362,10 @@ function Friends() {
               </Paper>
             ) : (
               <Grid container spacing={3}>
-                {friendRequests.map((requestId) => {
-                  const requester = getUserInfo(requestId);
+                {friendRequests.map((request) => {
+                  // request is now an object: {id, fromId, name, email}
                   return (
-                    <Grid item xs={12} sm={6} md={4} key={requestId}>
+                    <Grid item xs={12} sm={6} md={4} key={request.id}>
                       <Card
                         elevation={2}
                         sx={{
@@ -389,17 +391,17 @@ function Friends() {
                               fontSize: 28,
                             }}
                           >
-                            {requester.name.charAt(0).toUpperCase()}
+                            {request.name.charAt(0).toUpperCase()}
                           </Avatar>
                           <Typography
                             variant="h6"
                             fontWeight="bold"
                             gutterBottom
                           >
-                            {requester.name}
+                            {request.name}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {requester.email}
+                            {request.email}
                           </Typography>
                         </CardContent>
                         <CardActions sx={{ p: 2, pt: 0, gap: 1 }}>
@@ -407,7 +409,7 @@ function Friends() {
                             variant="contained"
                             color="success"
                             startIcon={<CheckIcon />}
-                            onClick={() => handleAcceptRequest(requestId)}
+                            onClick={() => handleAcceptRequest(request.fromId)}
                             disabled={loading}
                             sx={{
                               flexGrow: 1,
@@ -423,7 +425,7 @@ function Friends() {
                             variant="outlined"
                             color="error"
                             startIcon={<CloseIcon />}
-                            onClick={() => handleRejectRequest(requestId)}
+                            onClick={() => handleRejectRequest(request.fromId)}
                             disabled={loading}
                             sx={{
                               '&:hover': {
