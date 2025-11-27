@@ -5,8 +5,8 @@ export const friendService = {
   sendFriendRequest: async (fromId, toId) => {
     try {
       const response = await apiClient.post('/friends/request', {
-        fromId: fromId,
-        toId: toId,
+        fromUser: fromId,
+        toUser: toId,
       });
       return response.data;
     } catch (error) {
