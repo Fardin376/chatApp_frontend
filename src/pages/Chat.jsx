@@ -74,8 +74,10 @@ function Chat({ setIsAuthenticated }) {
         // Create conversation entries for each friend
         const convos = (friendsList.friends || []).map((friendId) => {
           const friend = allUsers.find((u) => u.id === friendId);
+          // Sort user IDs alphabetically to ensure consistent conversation ID
+          const sortedIds = [currentUser.id, friendId].sort();
           return {
-            conversationId: `${currentUser.id}_${friendId}`,
+            conversationId: `${sortedIds[0]}_${sortedIds[1]}`,
             participants: [currentUser.id, friendId],
             friendName: friend?.name || 'Unknown User',
             friendId: friendId,
