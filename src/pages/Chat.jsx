@@ -86,7 +86,44 @@ function Chat({ setIsAuthenticated }) {
       }
     };
 
-    // Setup real-time listeners
+    // Fetch rooms from API
+    const fetchRooms = async () => {
+      try {
+        const roomsData = await roomService.getAllRooms();
+        console.log('🏠 Fetched rooms from API:', roomsData);
+        setRooms(roomsData.map((room) => ({ ...room, type: 'room' })));
+      } catch (error) {
+        console.error('Failed to fetch rooms:', error);
+      }
+    };
+
+    // Fetch conversations from friends list
+    const fetchConversationsFromFriends = async (allUsers) => {
+      try {
+        const friendsList = await friendService.getFriendsList(currentUser.id);
+        console.log('👥 Fetched friends list:', friendsList);
+        // Create conversation entries for each friend
+        const convos = (friendsList.friends || []).map((friendId) => {
+          const friend = allUsers.find((u) => u.id === friendId);
+          // Sort user IDs alphabetically to ensure consistent conversation ID
+          const sortedIds = [currentUser.id, friendId].sort();
+          return {
+            conversationId: `${sortedIds[0]}_${sortedIds[1]}`,
+            participants: [currentUser.id, friendId],
+            friendName: friend?.name || 'Unknown User',
+            friendId: friendId,
+            lastMessage: null,
+            type: 'conversation',
+          };
+        });
+        console.log('💬 Created conversations:', convos);
+        setConversations(convos);
+      } catch (error) {
+        console.error('Failed to fetch conversations:', error);
+      }
+    };
+
+    // Setup real-time listeners (for updates only)
     const setupRealtimeListeners = async () => {
       try {
         // Subscribe to rooms with real-time updates
@@ -94,7 +131,9 @@ function Chat({ setIsAuthenticated }) {
           currentUser.id,
           (realtimeRooms) => {
             console.log('📡 Real-time rooms update:', realtimeRooms);
-            setRooms(realtimeRooms.map((room) => ({ ...room, type: 'room' })));
+            if (realtimeRooms.length > 0) {
+              setRooms(realtimeRooms.map((room) => ({ ...room, type: 'room' })));
+            }
           },
           (error) => {
             console.error('❌ Rooms subscription error:', error);
@@ -109,12 +148,14 @@ function Chat({ setIsAuthenticated }) {
               '📡 Real-time conversations update:',
               realtimeConversations
             );
-            setConversations(
-              realtimeConversations.map((conv) => ({
-                ...conv,
-                type: 'conversation',
-              }))
-            );
+            if (realtimeConversations.length > 0) {
+              setConversations(
+                realtimeConversations.map((conv) => ({
+                  ...conv,
+                  type: 'conversation',
+                }))
+              );
+            }
           },
           (error) => {
             console.error('❌ Conversations subscription error:', error);
@@ -151,7 +192,9 @@ function Chat({ setIsAuthenticated }) {
 
     // Initialize data in correct order
     const initializeData = async () => {
-      await fetchUsers();
+      const allUsers = await fetchUsers();
+      await fetchRooms();
+      await fetchConversationsFromFriends(allUsers);
       await setupRealtimeListeners();
     };
 
