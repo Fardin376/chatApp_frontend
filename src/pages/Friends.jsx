@@ -52,19 +52,19 @@ function Friends() {
     fetchFriends();
     fetchUsers();
 
-    // Set up real-time listener for friend requests
+    // Set up polling for friend requests (checks every 3 seconds)
     const currentUser = authService.getCurrentUser();
-    const unsubscribe = friendService.onFriendRequestsChange(
+    const stopPolling = friendService.startFriendRequestsPolling(
       currentUser.id,
       (requests) => {
         setFriendRequests(requests);
       }
     );
 
-    // Cleanup listener on unmount
+    // Cleanup polling on unmount
     return () => {
-      if (unsubscribe) {
-        unsubscribe();
+      if (stopPolling) {
+        stopPolling();
       }
     };
   }, []);

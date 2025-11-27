@@ -1,6 +1,4 @@
 import apiClient from './apiClient';
-import { db } from '../config/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
 
 export const friendService = {
   // Send a friend request - POST /friends/request
@@ -88,18 +86,24 @@ export const friendService = {
   // Get pending friend requests - GET /friends/:userId/incoming
   getFriendRequests: async (userId) => {
     try {
+      console.log('Fetching friend requests for userId:', userId);
       const response = await apiClient.get(`/friends/${userId}/incoming`);
+      console.log('Friend requests API response:', response.data);
+
       // Backend returns {incomingRequests: ["uid1", "uid2"]}
       // Need to fetch user details for each request sender
       const requestIds = response.data.incomingRequests || [];
+      console.log('Request IDs:', requestIds);
 
       if (requestIds.length === 0) {
+        console.log('No friend requests found');
         return [];
       }
 
       // Fetch all users to get request sender details
       const usersResponse = await apiClient.get('/users');
       const allUsers = usersResponse.data;
+      console.log('All users:', allUsers);
 
       // Filter to get only request senders with their details
       const requestDetails = allUsers
@@ -111,58 +115,40 @@ export const friendService = {
           email: user.email,
         }));
 
+      console.log('Request details:', requestDetails);
       return requestDetails;
     } catch (error) {
+      console.error('Error in getFriendRequests:', error);
       throw error.response?.data || { error: 'Failed to get friend requests' };
     }
   },
 
-  // Listen to real-time updates for incoming friend requests
-  onFriendRequestsChange: (userId, callback) => {
-    const userDocRef = doc(db, 'users', userId);
+  // Poll for friend request updates (real-time simulation)
+  startFriendRequestsPolling: (userId, callback, interval = 3000) => {
+    let isActive = true;
 
-    const unsubscribe = onSnapshot(
-      userDocRef,
-      async (docSnapshot) => {
-        if (docSnapshot.exists()) {
-          const userData = docSnapshot.data();
-          const requestIds = userData.incomingFriendRequests || [];
+    const poll = async () => {
+      if (!isActive) return;
 
-          if (requestIds.length === 0) {
-            callback([]);
-            return;
-          }
-
-          try {
-            // Fetch all users to get request sender details
-            const usersResponse = await apiClient.get('/users');
-            const allUsers = usersResponse.data;
-
-            // Filter to get only request senders with their details
-            const requestDetails = allUsers
-              .filter((user) => requestIds.includes(user.id))
-              .map((user) => ({
-                id: user.id,
-                fromId: user.id,
-                name: user.name,
-                email: user.email,
-              }));
-
-            callback(requestDetails);
-          } catch (error) {
-            console.error('Error fetching user details:', error);
-            callback([]);
-          }
-        } else {
-          callback([]);
-        }
-      },
-      (error) => {
-        console.error('Error listening to friend requests:', error);
+      try {
+        const requests = await friendService.getFriendRequests(userId);
+        callback(requests);
+      } catch (error) {
+        console.error('Error polling friend requests:', error);
       }
-    );
 
-    return unsubscribe;
+      if (isActive) {
+        setTimeout(poll, interval);
+      }
+    };
+
+    // Start polling immediately
+    poll();
+
+    // Return stop function
+    return () => {
+      isActive = false;
+    };
   },
 };
 
