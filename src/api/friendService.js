@@ -1,4 +1,6 @@
 import apiClient from './apiClient';
+import { db } from '../config/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
 
 export const friendService = {
   // Send a friend request - POST /friends/request
@@ -113,6 +115,54 @@ export const friendService = {
     } catch (error) {
       throw error.response?.data || { error: 'Failed to get friend requests' };
     }
+  },
+
+  // Listen to real-time updates for incoming friend requests
+  onFriendRequestsChange: (userId, callback) => {
+    const userDocRef = doc(db, 'users', userId);
+
+    const unsubscribe = onSnapshot(
+      userDocRef,
+      async (docSnapshot) => {
+        if (docSnapshot.exists()) {
+          const userData = docSnapshot.data();
+          const requestIds = userData.incomingFriendRequests || [];
+
+          if (requestIds.length === 0) {
+            callback([]);
+            return;
+          }
+
+          try {
+            // Fetch all users to get request sender details
+            const usersResponse = await apiClient.get('/users');
+            const allUsers = usersResponse.data;
+
+            // Filter to get only request senders with their details
+            const requestDetails = allUsers
+              .filter((user) => requestIds.includes(user.id))
+              .map((user) => ({
+                id: user.id,
+                fromId: user.id,
+                name: user.name,
+                email: user.email,
+              }));
+
+            callback(requestDetails);
+          } catch (error) {
+            console.error('Error fetching user details:', error);
+            callback([]);
+          }
+        } else {
+          callback([]);
+        }
+      },
+      (error) => {
+        console.error('Error listening to friend requests:', error);
+      }
+    );
+
+    return unsubscribe;
   },
 };
 

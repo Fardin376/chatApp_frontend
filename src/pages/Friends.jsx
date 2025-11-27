@@ -50,8 +50,23 @@ function Friends() {
 
   useEffect(() => {
     fetchFriends();
-    fetchFriendRequests();
     fetchUsers();
+
+    // Set up real-time listener for friend requests
+    const currentUser = authService.getCurrentUser();
+    const unsubscribe = friendService.onFriendRequestsChange(
+      currentUser.id,
+      (requests) => {
+        setFriendRequests(requests);
+      }
+    );
+
+    // Cleanup listener on unmount
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   const fetchFriends = async () => {
