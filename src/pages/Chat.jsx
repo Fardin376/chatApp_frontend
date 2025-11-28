@@ -809,7 +809,14 @@ function Chat({ setIsAuthenticated }) {
         </AppBar>
 
         {/* Messages Area */}
-        <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2, bgcolor: '#f5f5f5' }}>
+        <Box
+          sx={{
+            flexGrow: 1,
+            overflow: 'auto',
+            p: { xs: 1, sm: 1.5, md: 2 },
+            bgcolor: '#f5f5f5',
+          }}
+        >
           {error && (
             <Alert severity="error" onClose={() => setError('')} sx={{ mb: 2 }}>
               {error}
@@ -838,9 +845,25 @@ function Chat({ setIsAuthenticated }) {
                 color: 'text.secondary',
               }}
             >
-              <ChatIcon sx={{ fontSize: 64, mb: 2, opacity: 0.3 }} />
-              <Typography variant="h6">No messages yet</Typography>
-              <Typography variant="body2">Start the conversation!</Typography>
+              <ChatIcon
+                sx={{
+                  fontSize: { xs: 48, sm: 64 },
+                  mb: { xs: 1, sm: 2 },
+                  opacity: 0.3,
+                }}
+              />
+              <Typography
+                variant="h6"
+                sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+              >
+                No messages yet
+              </Typography>
+              <Typography
+                variant="body2"
+                sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+              >
+                Start the conversation!
+              </Typography>
             </Box>
           ) : (
             <Box>
@@ -849,9 +872,9 @@ function Chat({ setIsAuthenticated }) {
                   key={index}
                   elevation={1}
                   sx={{
-                    p: 1.5,
-                    mb: 1.5,
-                    maxWidth: { xs: '85%', sm: '75%', md: '70%' },
+                    p: { xs: 1, sm: 1.5 },
+                    mb: { xs: 1, sm: 1.5 },
+                    maxWidth: { xs: '90%', sm: '80%', md: '70%' },
                     ml: msg.senderId === user?.id ? 'auto' : 0,
                     mr: msg.senderId === user?.id ? 0 : 'auto',
                     bgcolor:
@@ -867,15 +890,27 @@ function Chat({ setIsAuthenticated }) {
                       mb: 0.5,
                     }}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: { xs: 0.5, sm: 1 },
+                        flexWrap: 'wrap',
+                      }}
+                    >
                       <Typography
                         variant="caption"
                         fontWeight="bold"
                         color="text.primary"
+                        sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
                       >
                         {msg.sender || getUserName(msg.senderId)}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}
+                      >
                         {msg.timestamp
                           ? new Date(msg.timestamp * 1000).toLocaleTimeString()
                           : new Date().toLocaleTimeString()}
@@ -897,7 +932,13 @@ function Chat({ setIsAuthenticated }) {
                       </IconButton>
                     )}
                   </Box>
-                  <Typography variant="body1">
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontSize: { xs: '0.875rem', sm: '1rem' },
+                      wordBreak: 'break-word',
+                    }}
+                  >
                     {msg.message || msg.text}
                   </Typography>
                   {msg.document && (

@@ -85,23 +85,39 @@ function Conversations() {
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
       {/* Header AppBar */}
       <AppBar position="static" color="primary" elevation={2}>
-        <Toolbar>
+        <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }}>
           <IconButton
             edge="start"
             color="inherit"
             onClick={() => navigate('/chat')}
-            sx={{ mr: 2 }}
+            sx={{ mr: { xs: 1, sm: 2 } }}
           >
             <ArrowBackIcon />
           </IconButton>
-          <ChatIcon sx={{ mr: 2, fontSize: 32 }} />
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+          <ChatIcon
+            sx={{
+              mr: { xs: 1, sm: 2 },
+              fontSize: { xs: 28, sm: 32 },
+              display: { xs: 'none', sm: 'block' },
+            }}
+          />
+          <Typography
+            variant="h6"
+            sx={{
+              flexGrow: 1,
+              fontWeight: 'bold',
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+            }}
+          >
             Conversations
           </Typography>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container
+        maxWidth="lg"
+        sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3 } }}
+      >
         {error && (
           <Alert severity="error" onClose={() => setError('')} sx={{ mb: 3 }}>
             {error}
@@ -109,17 +125,44 @@ function Conversations() {
         )}
 
         {/* Start Conversation Section */}
-        <Paper elevation={3} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <ChatIcon sx={{ mr: 1, color: 'primary.main' }} />
-            <Typography variant="h5" fontWeight="bold">
+        <Paper
+          elevation={3}
+          sx={{
+            p: { xs: 2, sm: 2.5, md: 3 },
+            mb: { xs: 2, sm: 3, md: 4 },
+            borderRadius: 2,
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              mb: { xs: 1.5, sm: 2 },
+            }}
+          >
+            <ChatIcon
+              sx={{
+                mr: { xs: 0.5, sm: 1 },
+                color: 'primary.main',
+                fontSize: { xs: 20, sm: 24 },
+              }}
+            />
+            <Typography
+              variant="h5"
+              fontWeight="bold"
+              sx={{ fontSize: { xs: '1.125rem', sm: '1.5rem' } }}
+            >
               Start New Conversation
             </Typography>
           </Box>
           <Box
             component="form"
             onSubmit={handleStartConversation}
-            sx={{ display: 'flex', gap: 2 }}
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: { xs: 1.5, sm: 2 },
+            }}
           >
             <FormControl fullWidth disabled={loading}>
               <InputLabel id="user-select-label">Select a user</InputLabel>
@@ -143,10 +186,11 @@ function Conversations() {
               type="submit"
               variant="contained"
               size="large"
+              fullWidth={{ xs: true, sm: false }}
               disabled={loading || !selectedUser}
               sx={{
-                px: 4,
-                minWidth: 150,
+                px: { xs: 2, sm: 3, md: 4 },
+                minWidth: { sm: 150 },
                 '&:hover': {
                   transform: 'translateY(-2px)',
                   transition: 'all 0.2s',
@@ -160,7 +204,14 @@ function Conversations() {
 
         {/* Users List Section */}
         <Box>
-          <Typography variant="h5" fontWeight="bold" sx={{ mb: 3 }}>
+          <Typography
+            variant="h5"
+            fontWeight="bold"
+            sx={{
+              mb: { xs: 2, sm: 3 },
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
+            }}
+          >
             Available Users
           </Typography>
           {loading && users.length === 0 ? (
@@ -171,7 +222,7 @@ function Conversations() {
             <Paper
               elevation={1}
               sx={{
-                p: 6,
+                p: { xs: 3, sm: 4, md: 6 },
                 textAlign: 'center',
                 borderRadius: 2,
                 bgcolor: 'background.paper',
@@ -185,7 +236,7 @@ function Conversations() {
               </Typography>
             </Paper>
           ) : (
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
               {users.map((user) => (
                 <Grid item xs={12} sm={6} md={4} key={user.id}>
                   <Card
@@ -202,31 +253,58 @@ function Conversations() {
                       },
                     }}
                   >
-                    <CardContent sx={{ flexGrow: 1, textAlign: 'center' }}>
+                    <CardContent
+                      sx={{
+                        flexGrow: 1,
+                        textAlign: 'center',
+                        p: { xs: 1.5, sm: 2 },
+                      }}
+                    >
                       <Avatar
                         sx={{
-                          width: 64,
-                          height: 64,
+                          width: { xs: 48, sm: 56, md: 64 },
+                          height: { xs: 48, sm: 56, md: 64 },
                           bgcolor: 'secondary.main',
                           margin: '0 auto',
-                          mb: 2,
-                          fontSize: 28,
+                          mb: { xs: 1, sm: 1.5, md: 2 },
+                          fontSize: { xs: 20, sm: 24, md: 28 },
                         }}
                       >
                         {user.name.charAt(0).toUpperCase()}
                       </Avatar>
-                      <Typography variant="h6" fontWeight="bold" gutterBottom>
+                      <Typography
+                        variant="h6"
+                        fontWeight="bold"
+                        gutterBottom
+                        sx={{
+                          fontSize: {
+                            xs: '1rem',
+                            sm: '1.125rem',
+                            md: '1.25rem',
+                          },
+                        }}
+                      >
                         {user.name}
                       </Typography>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                          wordBreak: 'break-word',
+                        }}
+                      >
                         {user.email}
                       </Typography>
                     </CardContent>
-                    <CardActions sx={{ p: 2, pt: 0 }}>
+                    <CardActions sx={{ p: { xs: 1, sm: 1.5, md: 2 }, pt: 0 }}>
                       <Button
                         fullWidth
                         variant="contained"
-                        startIcon={<ChatIcon />}
+                        size="small"
+                        startIcon={
+                          <ChatIcon sx={{ fontSize: { xs: 16, sm: 20 } }} />
+                        }
                         onClick={async () => {
                           try {
                             setLoading(true);
@@ -249,6 +327,7 @@ function Conversations() {
                         }}
                         disabled={loading}
                         sx={{
+                          fontSize: { xs: '0.75rem', sm: '0.875rem' },
                           '&:hover': {
                             transform: 'scale(1.02)',
                             transition: 'all 0.2s',

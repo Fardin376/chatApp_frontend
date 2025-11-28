@@ -173,23 +173,39 @@ function Friends() {
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
       {/* Header AppBar */}
       <AppBar position="static" color="primary" elevation={2}>
-        <Toolbar>
+        <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }}>
           <IconButton
             edge="start"
             color="inherit"
             onClick={() => navigate('/chat')}
-            sx={{ mr: 2 }}
+            sx={{ mr: { xs: 1, sm: 2 } }}
           >
             <ArrowBackIcon />
           </IconButton>
-          <PersonIcon sx={{ mr: 2, fontSize: 32 }} />
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+          <PersonIcon
+            sx={{
+              mr: { xs: 1, sm: 2 },
+              fontSize: { xs: 28, sm: 32 },
+              display: { xs: 'none', sm: 'block' },
+            }}
+          />
+          <Typography
+            variant="h6"
+            sx={{
+              flexGrow: 1,
+              fontWeight: 'bold',
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+            }}
+          >
             Friends
           </Typography>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container
+        maxWidth="lg"
+        sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3 } }}
+      >
         {error && (
           <Alert severity="error" onClose={() => setError('')} sx={{ mb: 3 }}>
             {error}
@@ -197,14 +213,19 @@ function Friends() {
         )}
 
         {/* Tabs Navigation */}
-        <Paper elevation={2} sx={{ mb: 3, borderRadius: 2 }}>
+        <Paper elevation={2} sx={{ mb: { xs: 2, sm: 3 }, borderRadius: 2 }}>
           <Tabs
             value={activeTab}
             onChange={(e, newValue) => setActiveTab(newValue)}
-            centered
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
             sx={{
               '& .MuiTab-root': {
                 fontWeight: 'bold',
+                fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                minWidth: { xs: 80, sm: 120 },
+                px: { xs: 1, sm: 2 },
                 '&:hover': {
                   bgcolor: 'action.hover',
                   transition: 'all 0.2s',
@@ -214,9 +235,27 @@ function Friends() {
           >
             <Tab
               label={
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <PersonIcon />
-                  My Friends ({friends.length})
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: { xs: 0.5, sm: 1 },
+                  }}
+                >
+                  <PersonIcon sx={{ fontSize: { xs: 18, sm: 24 } }} />
+                  <Box
+                    component="span"
+                    sx={{ display: { xs: 'none', sm: 'inline' } }}
+                  >
+                    My Friends
+                  </Box>
+                  <Box
+                    component="span"
+                    sx={{ display: { xs: 'inline', sm: 'none' } }}
+                  >
+                    Friends
+                  </Box>
+                  ({friends.length})
                 </Box>
               }
               value="friends"
@@ -246,7 +285,14 @@ function Friends() {
 
         {activeTab === 'friends' && (
           <Box>
-            <Typography variant="h5" fontWeight="bold" sx={{ mb: 3 }}>
+            <Typography
+              variant="h5"
+              fontWeight="bold"
+              sx={{
+                mb: { xs: 2, sm: 3 },
+                fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              }}
+            >
               My Friends
             </Typography>
             {friends.length === 0 ? (
@@ -289,15 +335,21 @@ function Friends() {
                           },
                         }}
                       >
-                        <CardContent sx={{ flexGrow: 1, textAlign: 'center' }}>
+                        <CardContent
+                          sx={{
+                            flexGrow: 1,
+                            textAlign: 'center',
+                            p: { xs: 1.5, sm: 2 },
+                          }}
+                        >
                           <Avatar
                             sx={{
-                              width: 64,
-                              height: 64,
+                              width: { xs: 48, sm: 56, md: 64 },
+                              height: { xs: 48, sm: 56, md: 64 },
                               bgcolor: 'primary.main',
                               margin: '0 auto',
-                              mb: 2,
-                              fontSize: 28,
+                              mb: { xs: 1, sm: 1.5, md: 2 },
+                              fontSize: { xs: 20, sm: 24, md: 28 },
                             }}
                           >
                             {friend.name.charAt(0).toUpperCase()}
@@ -306,22 +358,40 @@ function Friends() {
                             variant="h6"
                             fontWeight="bold"
                             gutterBottom
+                            sx={{
+                              fontSize: {
+                                xs: '1rem',
+                                sm: '1.125rem',
+                                md: '1.25rem',
+                              },
+                            }}
                           >
                             {friend.name}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                              wordBreak: 'break-word',
+                            }}
+                          >
                             {friend.email}
                           </Typography>
                         </CardContent>
                         <CardActions sx={{ p: 2, pt: 0, gap: 1 }}>
                           <Button
                             variant="contained"
-                            startIcon={<ChatIcon />}
+                            startIcon={
+                              <ChatIcon sx={{ fontSize: { xs: 16, sm: 20 } }} />
+                            }
                             onClick={() =>
                               navigate(`/conversations?userId=${friend.id}`)
                             }
+                            fullWidth
+                            size="small"
                             sx={{
-                              flexGrow: 1,
+                              fontSize: { xs: '0.75rem', sm: '0.875rem' },
                               '&:hover': {
                                 transform: 'scale(1.02)',
                                 transition: 'all 0.2s',
@@ -334,7 +404,9 @@ function Friends() {
                             color="error"
                             onClick={() => handleRemoveFriend(friend.id)}
                             disabled={loading}
+                            size="small"
                             sx={{
+                              display: { xs: 'none', sm: 'inline-flex' },
                               '&:hover': {
                                 transform: 'scale(1.1)',
                                 transition: 'all 0.2s',
@@ -343,6 +415,25 @@ function Friends() {
                           >
                             <PersonRemoveIcon />
                           </IconButton>
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            fullWidth
+                            startIcon={
+                              <PersonRemoveIcon
+                                sx={{ fontSize: { xs: 16, sm: 20 } }}
+                              />
+                            }
+                            onClick={() => handleRemoveFriend(friend.id)}
+                            disabled={loading}
+                            sx={{
+                              display: { xs: 'flex', sm: 'none' },
+                              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                            }}
+                          >
+                            Remove
+                          </Button>
                         </CardActions>
                       </Card>
                     </Grid>
@@ -355,7 +446,14 @@ function Friends() {
 
         {activeTab === 'requests' && (
           <Box>
-            <Typography variant="h5" fontWeight="bold" sx={{ mb: 3 }}>
+            <Typography
+              variant="h5"
+              fontWeight="bold"
+              sx={{
+                mb: { xs: 2, sm: 3 },
+                fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              }}
+            >
               Friend Requests
             </Typography>
             {friendRequests.length === 0 ? (
@@ -395,15 +493,21 @@ function Friends() {
                           },
                         }}
                       >
-                        <CardContent sx={{ flexGrow: 1, textAlign: 'center' }}>
+                        <CardContent
+                          sx={{
+                            flexGrow: 1,
+                            textAlign: 'center',
+                            p: { xs: 1.5, sm: 2 },
+                          }}
+                        >
                           <Avatar
                             sx={{
-                              width: 64,
-                              height: 64,
+                              width: { xs: 48, sm: 56, md: 64 },
+                              height: { xs: 48, sm: 56, md: 64 },
                               bgcolor: 'secondary.main',
                               margin: '0 auto',
-                              mb: 2,
-                              fontSize: 28,
+                              mb: { xs: 1, sm: 1.5, md: 2 },
+                              fontSize: { xs: 20, sm: 24, md: 28 },
                             }}
                           >
                             {request.name.charAt(0).toUpperCase()}
@@ -412,22 +516,49 @@ function Friends() {
                             variant="h6"
                             fontWeight="bold"
                             gutterBottom
+                            sx={{
+                              fontSize: {
+                                xs: '1rem',
+                                sm: '1.125rem',
+                                md: '1.25rem',
+                              },
+                            }}
                           >
                             {request.name}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary">
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                              fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                              wordBreak: 'break-word',
+                            }}
+                          >
                             {request.email}
                           </Typography>
                         </CardContent>
-                        <CardActions sx={{ p: 2, pt: 0, gap: 1 }}>
+                        <CardActions
+                          sx={{
+                            p: { xs: 1, sm: 1.5, md: 2 },
+                            pt: 0,
+                            gap: { xs: 0.5, sm: 1 },
+                            flexDirection: { xs: 'column', sm: 'row' },
+                          }}
+                        >
                           <Button
                             variant="contained"
                             color="success"
-                            startIcon={<CheckIcon />}
+                            startIcon={
+                              <CheckIcon
+                                sx={{ fontSize: { xs: 16, sm: 20 } }}
+                              />
+                            }
                             onClick={() => handleAcceptRequest(request.fromId)}
                             disabled={loading}
+                            fullWidth
+                            size="small"
                             sx={{
-                              flexGrow: 1,
+                              fontSize: { xs: '0.75rem', sm: '0.875rem' },
                               '&:hover': {
                                 transform: 'scale(1.02)',
                                 transition: 'all 0.2s',
@@ -439,10 +570,17 @@ function Friends() {
                           <Button
                             variant="outlined"
                             color="error"
-                            startIcon={<CloseIcon />}
+                            startIcon={
+                              <CloseIcon
+                                sx={{ fontSize: { xs: 16, sm: 20 } }}
+                              />
+                            }
                             onClick={() => handleRejectRequest(request.fromId)}
                             disabled={loading}
+                            fullWidth
+                            size="small"
                             sx={{
+                              fontSize: { xs: '0.75rem', sm: '0.875rem' },
                               '&:hover': {
                                 transform: 'scale(1.02)',
                                 transition: 'all 0.2s',
@@ -464,17 +602,44 @@ function Friends() {
         {activeTab === 'add' && (
           <Box>
             {/* Send Friend Request Section */}
-            <Paper elevation={3} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                <PersonAddIcon sx={{ mr: 1, color: 'primary.main' }} />
-                <Typography variant="h5" fontWeight="bold">
+            <Paper
+              elevation={3}
+              sx={{
+                p: { xs: 2, sm: 2.5, md: 3 },
+                mb: { xs: 2, sm: 3, md: 4 },
+                borderRadius: 2,
+              }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  mb: { xs: 1.5, sm: 2 },
+                }}
+              >
+                <PersonAddIcon
+                  sx={{
+                    mr: { xs: 0.5, sm: 1 },
+                    color: 'primary.main',
+                    fontSize: { xs: 20, sm: 24 },
+                  }}
+                />
+                <Typography
+                  variant="h5"
+                  fontWeight="bold"
+                  sx={{ fontSize: { xs: '1.125rem', sm: '1.5rem' } }}
+                >
                   Send Friend Request
                 </Typography>
               </Box>
               <Box
                 component="form"
                 onSubmit={handleSendRequest}
-                sx={{ display: 'flex', gap: 2 }}
+                sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
+                  gap: { xs: 1.5, sm: 2 },
+                }}
               >
                 <FormControl fullWidth disabled={loading}>
                   <InputLabel id="user-select-label">Select a user</InputLabel>
@@ -501,9 +666,10 @@ function Friends() {
                   variant="contained"
                   size="large"
                   disabled={loading || !selectedUser}
+                  fullWidth={{ xs: true, sm: false }}
                   sx={{
-                    px: 4,
-                    minWidth: 150,
+                    px: { xs: 2, sm: 3, md: 4 },
+                    minWidth: { sm: 150 },
                     '&:hover': {
                       transform: 'translateY(-2px)',
                       transition: 'all 0.2s',
@@ -516,7 +682,14 @@ function Friends() {
             </Paper>
 
             {/* All Users List */}
-            <Typography variant="h5" fontWeight="bold" sx={{ mb: 3 }}>
+            <Typography
+              variant="h5"
+              fontWeight="bold"
+              sx={{
+                mb: { xs: 2, sm: 3 },
+                fontSize: { xs: '1.25rem', sm: '1.5rem' },
+              }}
+            >
               All Users
             </Typography>
             <Grid container spacing={3}>
@@ -538,37 +711,67 @@ function Friends() {
                         },
                       }}
                     >
-                      <CardContent sx={{ flexGrow: 1, textAlign: 'center' }}>
+                      <CardContent
+                        sx={{
+                          flexGrow: 1,
+                          textAlign: 'center',
+                          p: { xs: 1.5, sm: 2 },
+                        }}
+                      >
                         <Avatar
                           sx={{
-                            width: 64,
-                            height: 64,
+                            width: { xs: 48, sm: 56, md: 64 },
+                            height: { xs: 48, sm: 56, md: 64 },
                             bgcolor: 'success.main',
                             margin: '0 auto',
-                            mb: 2,
-                            fontSize: 28,
+                            mb: { xs: 1, sm: 1.5, md: 2 },
+                            fontSize: { xs: 20, sm: 24, md: 28 },
                           }}
                         >
                           {user.name.charAt(0).toUpperCase()}
                         </Avatar>
-                        <Typography variant="h6" fontWeight="bold" gutterBottom>
+                        <Typography
+                          variant="h6"
+                          fontWeight="bold"
+                          gutterBottom
+                          sx={{
+                            fontSize: {
+                              xs: '1rem',
+                              sm: '1.125rem',
+                              md: '1.25rem',
+                            },
+                          }}
+                        >
                           {user.name}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                            wordBreak: 'break-word',
+                          }}
+                        >
                           {user.email}
                         </Typography>
                       </CardContent>
-                      <CardActions sx={{ p: 2, pt: 0 }}>
+                      <CardActions sx={{ p: { xs: 1, sm: 1.5, md: 2 }, pt: 0 }}>
                         <Button
                           fullWidth
                           variant="contained"
-                          startIcon={<PersonAddIcon />}
+                          size="small"
+                          startIcon={
+                            <PersonAddIcon
+                              sx={{ fontSize: { xs: 16, sm: 20 } }}
+                            />
+                          }
                           onClick={() => {
                             setSelectedUser(user.id);
                             handleSendRequest({ preventDefault: () => {} });
                           }}
                           disabled={loading}
                           sx={{
+                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
                             '&:hover': {
                               transform: 'scale(1.02)',
                               transition: 'all 0.2s',

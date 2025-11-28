@@ -124,23 +124,39 @@ function Rooms() {
     <Box sx={{ minHeight: '100vh', bgcolor: '#f5f5f5' }}>
       {/* Header AppBar */}
       <AppBar position="static" color="primary" elevation={2}>
-        <Toolbar>
+        <Toolbar sx={{ minHeight: { xs: 56, sm: 64 } }}>
           <IconButton
             edge="start"
             color="inherit"
             onClick={() => navigate('/chat')}
-            sx={{ mr: 2 }}
+            sx={{ mr: { xs: 1, sm: 2 } }}
           >
             <ArrowBackIcon />
           </IconButton>
-          <GroupIcon sx={{ mr: 2, fontSize: 32 }} />
-          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+          <GroupIcon
+            sx={{
+              mr: { xs: 1, sm: 2 },
+              fontSize: { xs: 28, sm: 32 },
+              display: { xs: 'none', sm: 'block' },
+            }}
+          />
+          <Typography
+            variant="h6"
+            sx={{
+              flexGrow: 1,
+              fontWeight: 'bold',
+              fontSize: { xs: '1rem', sm: '1.25rem' },
+            }}
+          >
             Chat Rooms
           </Typography>
         </Toolbar>
       </AppBar>
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Container
+        maxWidth="lg"
+        sx={{ py: { xs: 2, sm: 3, md: 4 }, px: { xs: 2, sm: 3 } }}
+      >
         {error && (
           <Alert severity="error" onClose={() => setError('')} sx={{ mb: 3 }}>
             {error}
@@ -148,17 +164,44 @@ function Rooms() {
         )}
 
         {/* Create Room Section */}
-        <Paper elevation={3} sx={{ p: 3, mb: 4, borderRadius: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <GroupIcon sx={{ mr: 1, color: 'primary.main' }} />
-            <Typography variant="h5" fontWeight="bold">
+        <Paper
+          elevation={3}
+          sx={{
+            p: { xs: 2, sm: 2.5, md: 3 },
+            mb: { xs: 2, sm: 3, md: 4 },
+            borderRadius: 2,
+          }}
+        >
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              mb: { xs: 1.5, sm: 2 },
+            }}
+          >
+            <GroupIcon
+              sx={{
+                mr: { xs: 0.5, sm: 1 },
+                color: 'primary.main',
+                fontSize: { xs: 20, sm: 24 },
+              }}
+            />
+            <Typography
+              variant="h5"
+              fontWeight="bold"
+              sx={{ fontSize: { xs: '1.125rem', sm: '1.5rem' } }}
+            >
               Create New Room
             </Typography>
           </Box>
           <Box
             component="form"
             onSubmit={handleCreateRoom}
-            sx={{ display: 'flex', gap: 2 }}
+            sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              gap: { xs: 1.5, sm: 2 },
+            }}
           >
             <TextField
               fullWidth
@@ -173,9 +216,10 @@ function Rooms() {
               type="submit"
               variant="contained"
               size="large"
+              fullWidth={{ xs: true, sm: false }}
               disabled={loading || !newRoomName.trim()}
               sx={{
-                px: 4,
+                px: { xs: 2, sm: 3, md: 4 },
                 '&:hover': {
                   transform: 'translateY(-2px)',
                   transition: 'all 0.2s',
@@ -189,7 +233,14 @@ function Rooms() {
 
         {/* Rooms List Section */}
         <Box>
-          <Typography variant="h5" fontWeight="bold" sx={{ mb: 3 }}>
+          <Typography
+            variant="h5"
+            fontWeight="bold"
+            sx={{
+              mb: { xs: 2, sm: 3 },
+              fontSize: { xs: '1.25rem', sm: '1.5rem' },
+            }}
+          >
             Available Rooms
           </Typography>
           {loading && rooms.length === 0 ? (
@@ -200,7 +251,7 @@ function Rooms() {
             <Paper
               elevation={1}
               sx={{
-                p: 6,
+                p: { xs: 3, sm: 4, md: 6 },
                 textAlign: 'center',
                 borderRadius: 2,
                 bgcolor: 'background.paper',
@@ -215,7 +266,7 @@ function Rooms() {
               </Typography>
             </Paper>
           ) : (
-            <Grid container spacing={3}>
+            <Grid container spacing={{ xs: 2, sm: 2.5, md: 3 }}>
               {rooms.map((room) => (
                 <Grid item xs={12} sm={6} md={4} key={room.roomId}>
                   <Card
@@ -266,27 +317,55 @@ function Rooms() {
                       </CardContent>
                     ) : (
                       <>
-                        <CardContent sx={{ flexGrow: 1 }}>
+                        <CardContent
+                          sx={{ flexGrow: 1, p: { xs: 1.5, sm: 2 } }}
+                        >
                           <Box
                             sx={{
                               display: 'flex',
                               alignItems: 'center',
-                              mb: 1,
+                              mb: { xs: 0.5, sm: 1 },
                             }}
                           >
-                            <GroupIcon sx={{ mr: 1, color: 'primary.main' }} />
-                            <Typography variant="h6" fontWeight="bold">
+                            <GroupIcon
+                              sx={{
+                                mr: { xs: 0.5, sm: 1 },
+                                color: 'primary.main',
+                                fontSize: { xs: 20, sm: 24 },
+                              }}
+                            />
+                            <Typography
+                              variant="h6"
+                              fontWeight="bold"
+                              sx={{
+                                fontSize: {
+                                  xs: '1rem',
+                                  sm: '1.125rem',
+                                  md: '1.25rem',
+                                },
+                              }}
+                            >
                               {room.roomName}
                             </Typography>
                           </Box>
                         </CardContent>
-                        <CardActions sx={{ p: 2, pt: 0 }}>
+                        <CardActions
+                          sx={{
+                            p: { xs: 1, sm: 1.5, md: 2 },
+                            pt: 0,
+                            gap: { xs: 0.5, sm: 1 },
+                          }}
+                        >
                           <Button
                             fullWidth
                             variant="contained"
-                            startIcon={<ChatIcon />}
+                            size="small"
+                            startIcon={
+                              <ChatIcon sx={{ fontSize: { xs: 16, sm: 20 } }} />
+                            }
                             onClick={() => openRoom(room.roomId)}
                             sx={{
+                              fontSize: { xs: '0.75rem', sm: '0.875rem' },
                               '&:hover': {
                                 transform: 'scale(1.02)',
                                 transition: 'all 0.2s',
@@ -297,6 +376,7 @@ function Rooms() {
                           </Button>
                           <IconButton
                             color="primary"
+                            size="small"
                             onClick={() => startEditing(room)}
                             disabled={loading}
                             sx={{
@@ -306,10 +386,11 @@ function Rooms() {
                               },
                             }}
                           >
-                            <EditIcon />
+                            <EditIcon fontSize="small" />
                           </IconButton>
                           <IconButton
                             color="error"
+                            size="small"
                             onClick={() => handleDeleteRoom(room.roomId)}
                             disabled={loading}
                             sx={{
@@ -319,7 +400,7 @@ function Rooms() {
                               },
                             }}
                           >
-                            <DeleteIcon />
+                            <DeleteIcon fontSize="small" />
                           </IconButton>
                         </CardActions>
                       </>
