@@ -212,15 +212,26 @@ function Chat({ setIsAuthenticated }) {
   useEffect(() => {
     if (!user?.id) return;
 
-    setMessages([]);
-    setLoading(true);
+    // Only show loader when switching between chats
+    if (roomId || conversationId) {
+      setMessages([]);
+      setLoading(true);
+    }
 
     let unsubscribeMessages;
     let unsubscribeTyping;
     let isMounted = true;
+    let loadingTimeout;
 
     const setupSubscriptions = async () => {
       try {
+        // Set a timeout to turn off loading after 5 seconds max
+        loadingTimeout = setTimeout(() => {
+          if (isMounted) {
+            setLoading(false);
+          }
+        }, 5000);
+
         if (roomId) {
           console.log('📡 Subscribing to room messages:', roomId);
           // Subscribe to room messages
@@ -232,6 +243,7 @@ function Chat({ setIsAuthenticated }) {
                 setMessages(messages);
                 setLoading(false);
                 setError('');
+                if (loadingTimeout) clearTimeout(loadingTimeout);
               }
             },
             (error) => {
@@ -239,6 +251,7 @@ function Chat({ setIsAuthenticated }) {
                 console.error('❌ Room subscription error:', error);
                 setError('Failed to load messages');
                 setLoading(false);
+                if (loadingTimeout) clearTimeout(loadingTimeout);
               }
             }
           );
@@ -253,6 +266,12 @@ function Chat({ setIsAuthenticated }) {
               }
             }
           );
+
+          // Turn off loading once subscriptions are set up
+          if (isMounted) {
+            setLoading(false);
+            if (loadingTimeout) clearTimeout(loadingTimeout);
+          }
         } else if (conversationId) {
           console.log(
             '📡 Subscribing to conversation messages:',
@@ -268,6 +287,7 @@ function Chat({ setIsAuthenticated }) {
                   setMessages(messages);
                   setLoading(false);
                   setError('');
+                  if (loadingTimeout) clearTimeout(loadingTimeout);
                 }
               },
               (error) => {
@@ -275,6 +295,7 @@ function Chat({ setIsAuthenticated }) {
                   console.error('❌ Conversation subscription error:', error);
                   setError('Failed to load messages');
                   setLoading(false);
+                  if (loadingTimeout) clearTimeout(loadingTimeout);
                 }
               }
             );
@@ -290,12 +311,25 @@ function Chat({ setIsAuthenticated }) {
                 }
               }
             );
+
+          // Turn off loading once subscriptions are set up
+          if (isMounted) {
+            setLoading(false);
+            if (loadingTimeout) clearTimeout(loadingTimeout);
+          }
+        } else {
+          // No room or conversation selected, turn off loading
+          if (isMounted) {
+            setLoading(false);
+            if (loadingTimeout) clearTimeout(loadingTimeout);
+          }
         }
       } catch (error) {
         if (isMounted) {
           console.error('❌ Subscription setup error:', error);
           setError('Failed to setup real-time updates');
           setLoading(false);
+          if (loadingTimeout) clearTimeout(loadingTimeout);
         }
       }
     };
@@ -305,6 +339,7 @@ function Chat({ setIsAuthenticated }) {
     // Cleanup subscriptions when room/conversation changes
     return () => {
       isMounted = false;
+      if (loadingTimeout) clearTimeout(loadingTimeout);
       if (unsubscribeMessages) {
         unsubscribeMessages();
       }
